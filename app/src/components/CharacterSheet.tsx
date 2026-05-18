@@ -169,6 +169,7 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
           <CardContent className="space-y-4 pt-4">
             <CoinTracker
               label="Coin"
+              tip="Spend on gear, lifestyle, and downtime activities. Stash for retirement."
               value={character.coin}
               max={4}
               onChange={(coin) => onUpdate({ coin })}
@@ -176,6 +177,7 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
             />
             <CoinTracker
               label="Stash"
+              tip="Long-term savings. At 40 stash, your character retires in comfort."
               value={character.stash}
               max={40}
               onChange={(stash) => onUpdate({ stash })}
@@ -185,6 +187,7 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
             <div className="space-y-2">
               <XPTracker
                 label="Playbook"
+                tip="Mark at end of session for your playbook trigger. At max, take a new special ability."
                 current={character.playbook_xp}
                 max={8}
                 onXPChange={(playbook_xp) => onUpdate({ playbook_xp })}
@@ -197,6 +200,7 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
               )}
               <XPTracker
                 label="Insight"
+                tip="Mark when you roll a desperate action with Hunt, Study, Survey, or Tinker."
                 current={character.insight_xp}
                 max={6}
                 onXPChange={(insight_xp) => onUpdate({ insight_xp })}
@@ -204,6 +208,7 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
               />
               <XPTracker
                 label="Prowess"
+                tip="Mark when you roll a desperate action with Finesse, Prowl, Skirmish, or Wreck."
                 current={character.prowess_xp}
                 max={6}
                 onXPChange={(prowess_xp) => onUpdate({ prowess_xp })}
@@ -211,6 +216,7 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
               />
               <XPTracker
                 label="Resolve"
+                tip="Mark when you roll a desperate action with Attune, Command, Consort, or Sway."
                 current={character.resolve_xp}
                 max={6}
                 onXPChange={(resolve_xp) => onUpdate({ resolve_xp })}

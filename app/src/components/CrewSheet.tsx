@@ -5,6 +5,7 @@ import { Separator } from '@/components/ui/separator'
 import { XPTracker } from '@/components/trackers/XPTracker'
 import { CoinTracker } from '@/components/trackers/CoinTracker'
 import { ClaimsMap } from '@/components/trackers/ClaimsMap'
+import { InfoLabel } from '@/components/InfoLabel'
 import { CREW_XP_TRIGGERS } from '@/lib/game-data'
 import { cn } from '@/lib/utils'
 import type { Crew } from '@/lib/types'
@@ -80,7 +81,7 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
             {/* Tier & Hold */}
             <div className="flex items-center gap-6">
               <div>
-                <span className="text-sm font-semibold uppercase tracking-wider">Tier</span>
+                <InfoLabel label="Tier" tip="Crew power level. Determines quality of equipment, cohorts, and the scale of your operations." />
                 <div className="mt-1 flex gap-1">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <button
@@ -102,7 +103,7 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
               </div>
 
               <div>
-                <span className="text-sm font-semibold uppercase tracking-wider">Hold</span>
+                <InfoLabel label="Hold" tip="Strong: confident, expanding. Weak: struggling, vulnerable to takeover." />
                 <div className="mt-1 flex gap-2">
                   {(['strong', 'weak'] as const).map((h) => (
                     <button
@@ -129,7 +130,7 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
             {/* Rep */}
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold uppercase tracking-wider">Rep</span>
+                <InfoLabel label="Rep" tip="Earn from successful scores. At 12, spend to advance your Tier." />
                 <span className="text-sm text-muted-foreground">{crew.rep}/12</span>
               </div>
               <div className="flex flex-wrap gap-0.5">
@@ -158,6 +159,7 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
             {/* Crew XP */}
             <XPTracker
               label="Crew XP"
+              tip="Mark at end of session for your crew trigger. At max, take a crew advance."
               current={crew.crew_xp}
               max={8}
               onXPChange={(crew_xp) => onUpdate({ crew_xp })}
@@ -176,7 +178,7 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
             {/* Heat & Wanted */}
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold uppercase tracking-wider">Heat</span>
+                <InfoLabel label="Heat" tip="Accumulates from scores. At 9, wanted level increases and heat resets to 0." />
                 <span className="text-sm text-muted-foreground">{crew.heat}/9</span>
               </div>
               <div className="flex flex-wrap gap-0.5">
@@ -204,7 +206,7 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
 
             {/* Wanted Level */}
             <div className="space-y-1">
-              <span className="text-sm font-semibold uppercase tracking-wider">Wanted Level</span>
+              <InfoLabel label="Wanted Level" tip="Attracts Bluecoat and Inspector attention. At 4, expect serious trouble." />
               <div className="flex gap-1">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <button
@@ -233,6 +235,7 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
             {/* Coin */}
             <CoinTracker
               label="Coin"
+              tip="Crew treasury. Limited by vault capacity. Spend to advance Tier or acquire assets."
               value={crew.coin}
               max={crew.vault_capacity}
               onChange={(coin) => onUpdate({ coin })}

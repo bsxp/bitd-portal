@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+import { InfoLabel } from '@/components/InfoLabel'
 import type { LoadLevel, Playbook } from '@/lib/types'
 import { STANDARD_ITEMS, PLAYBOOK_ITEMS, LOAD_LIMITS } from '@/lib/game-data'
 
@@ -25,7 +26,7 @@ export function LoadTracker({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold uppercase tracking-wider">Load</span>
+        <InfoLabel label="Load" tip="Choose before a score. Light = quick & quiet. Heavy = slow & noisy but well-equipped." />
         {loadLevel && (
           <span className={cn(
             'text-sm font-medium',

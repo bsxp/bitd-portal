@@ -1,14 +1,16 @@
 import { cn } from '@/lib/utils'
+import { InfoLabel } from '@/components/InfoLabel'
 
 interface XPTrackerProps {
   label: string
+  tip?: string
   current: number
   max: number
   onXPChange: (value: number) => void
   readonly?: boolean
 }
 
-export function XPTracker({ label, current, max, onXPChange, readonly }: XPTrackerProps) {
+export function XPTracker({ label, tip, current, max, onXPChange, readonly }: XPTrackerProps) {
   function handleClick(index: number) {
     if (readonly) return
     onXPChange(current === index + 1 ? index : index + 1)
@@ -16,7 +18,11 @@ export function XPTracker({ label, current, max, onXPChange, readonly }: XPTrack
 
   return (
     <div className="flex items-center gap-2">
-      <span className="w-20 text-xs font-medium uppercase tracking-wider">{label}</span>
+      {tip ? (
+        <InfoLabel label={label} tip={tip} className="w-20 text-xs" />
+      ) : (
+        <span className="w-20 text-xs font-medium uppercase tracking-wider">{label}</span>
+      )}
       <div className="flex gap-0.5">
         {Array.from({ length: max }).map((_, i) => (
           <button

@@ -1,14 +1,16 @@
 import { cn } from '@/lib/utils'
+import { InfoLabel } from '@/components/InfoLabel'
 
 interface CoinTrackerProps {
   label: string
+  tip?: string
   value: number
   max: number
   onChange: (value: number) => void
   readonly?: boolean
 }
 
-export function CoinTracker({ label, value, max, onChange, readonly }: CoinTrackerProps) {
+export function CoinTracker({ label, tip, value, max, onChange, readonly }: CoinTrackerProps) {
   function handleClick(index: number) {
     if (readonly) return
     onChange(value === index + 1 ? index : index + 1)
@@ -17,7 +19,11 @@ export function CoinTracker({ label, value, max, onChange, readonly }: CoinTrack
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold uppercase tracking-wider">{label}</span>
+        {tip ? (
+          <InfoLabel label={label} tip={tip} />
+        ) : (
+          <span className="text-sm font-semibold uppercase tracking-wider">{label}</span>
+        )}
         <span className="text-sm text-muted-foreground">{value}</span>
       </div>
       <div className="flex flex-wrap gap-0.5">

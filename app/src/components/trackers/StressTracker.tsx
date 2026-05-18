@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import { TRAUMA_OPTIONS } from '@/lib/types'
+import { InfoLabel } from '@/components/InfoLabel'
 
 interface StressTrackerProps {
   stress: number
@@ -21,7 +22,7 @@ export function StressTracker({ stress, trauma, onStressChange, onTraumaOut, rea
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold uppercase tracking-wider">Stress</span>
+        <InfoLabel label="Stress" tip="Pushing yourself, resisting consequences, and special abilities cost stress. At 9, you trauma out — pick a trauma and reset to 0." />
         <span className="text-sm text-muted-foreground">{stress}/{maxStress}</span>
       </div>
       <div className="flex gap-1">

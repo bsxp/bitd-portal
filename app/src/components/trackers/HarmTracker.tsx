@@ -1,4 +1,6 @@
 import { Input } from '@/components/ui/input'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { InfoLabel } from '@/components/InfoLabel'
 
 interface HarmTrackerProps {
   harmLevel3: string | null
@@ -11,9 +13,9 @@ interface HarmTrackerProps {
 }
 
 const HARM_PENALTIES = [
-  { level: 3, label: 'Need Help', slots: 1 },
-  { level: 2, label: '-1d', slots: 2 },
-  { level: 1, label: 'Less Effect', slots: 2 },
+  { level: 3, label: 'Need Help', slots: 1, tip: 'Fatal or catastrophic. You need help from a crewmate to do anything.' },
+  { level: 2, label: '-1d', slots: 2, tip: 'Serious injury. Take -1d to any action related to this harm.' },
+  { level: 1, label: 'Less Effect', slots: 2, tip: 'Lesser injury. You have reduced effect for actions related to this harm.' },
 ]
 
 export function HarmTracker({
@@ -30,13 +32,16 @@ export function HarmTracker({
 
   return (
     <div className="space-y-2">
-      <span className="text-sm font-semibold uppercase tracking-wider">Harm</span>
+      <InfoLabel label="Harm" tip="Injuries from consequences. Each level applies a different penalty to your actions." />
       <div className="space-y-1">
-        {HARM_PENALTIES.map(({ level, label, slots }) => (
+        {HARM_PENALTIES.map(({ level, label, slots, tip }) => (
           <div key={level} className="flex items-center gap-2">
-            <div className="w-8 text-center">
-              <span className="text-lg font-bold">{level}</span>
-            </div>
+            <Tooltip>
+              <TooltipTrigger className="w-8 text-center cursor-help">
+                <span className="text-lg font-bold">{level}</span>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-[200px]">{tip}</TooltipContent>
+            </Tooltip>
             <span className="w-20 text-xs text-muted-foreground">{label}</span>
             <div className="flex flex-1 gap-1">
               {Array.from({ length: slots }).map((_, i) => {

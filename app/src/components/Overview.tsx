@@ -196,26 +196,52 @@ function GMQuickActions({
               <div className="flex items-center gap-1">
                 <span className="text-xs text-muted-foreground w-8">Harm</span>
                 <Input
-                  placeholder="Lv 1..."
-                  className="h-6 w-24 text-xs"
-                  onKeyDown={(e) => {
-                    if (e.key !== 'Enter') return
-                    const val = (e.target as HTMLInputElement).value.trim()
-                    if (!val) return
-                    if (!c.harm_level1_a) {
-                      onCharacterUpdate(c.id, { harm_level1_a: val })
-                    } else if (!c.harm_level1_b) {
-                      onCharacterUpdate(c.id, { harm_level1_b: val })
-                    } else if (!c.harm_level2_a) {
-                      onCharacterUpdate(c.id, { harm_level2_a: val })
-                    } else if (!c.harm_level2_b) {
-                      onCharacterUpdate(c.id, { harm_level2_b: val })
-                    } else if (!c.harm_level3) {
-                      onCharacterUpdate(c.id, { harm_level3: val })
-                    }
-                    ;(e.target as HTMLInputElement).value = ''
-                  }}
+                  data-harm-input={c.id}
+                  placeholder="Description..."
+                  className="h-6 w-20 text-xs"
                 />
+                {[1, 2, 3].map((level) => {
+                  const full = level === 3
+                    ? !!c.harm_level3
+                    : level === 2
+                    ? !!c.harm_level2_a && !!c.harm_level2_b
+                    : !!c.harm_level1_a && !!c.harm_level1_b
+                  return (
+                    <button
+                      key={level}
+                      disabled={full}
+                      onClick={() => {
+                        const input = document.querySelector(
+                          `[data-harm-input="${c.id}"]`
+                        ) as HTMLInputElement
+                        const val = input?.value.trim()
+                        if (!val) return
+                        if (level === 1) {
+                          if (!c.harm_level1_a) onCharacterUpdate(c.id, { harm_level1_a: val })
+                          else if (!c.harm_level1_b) onCharacterUpdate(c.id, { harm_level1_b: val })
+                        } else if (level === 2) {
+                          if (!c.harm_level2_a) onCharacterUpdate(c.id, { harm_level2_a: val })
+                          else if (!c.harm_level2_b) onCharacterUpdate(c.id, { harm_level2_b: val })
+                        } else {
+                          if (!c.harm_level3) onCharacterUpdate(c.id, { harm_level3: val })
+                        }
+                        if (input) input.value = ''
+                      }}
+                      className={cn(
+                        'h-6 w-6 rounded border text-[10px] font-bold transition-colors',
+                        full
+                          ? 'border-muted-foreground/20 text-muted-foreground/30'
+                          : level === 3
+                          ? 'border-red-500/50 text-red-600 hover:bg-red-500/10 cursor-pointer'
+                          : level === 2
+                          ? 'border-orange-500/50 text-orange-600 hover:bg-orange-500/10 cursor-pointer'
+                          : 'border-yellow-500/50 text-yellow-700 hover:bg-yellow-500/10 cursor-pointer',
+                      )}
+                    >
+                      {level}
+                    </button>
+                  )
+                })}
               </div>
 
               <Separator orientation="vertical" className="h-6" />
@@ -252,7 +278,7 @@ function GMQuickActions({
           ))}
         </div>
         <p className="mt-2 text-[10px] text-muted-foreground">
-          Harm: type and press Enter to fill the next empty slot (Lv1 → Lv2 → Lv3).
+          Harm: type a description, then click the level button (1/2/3) to place it.
           End Score resets load, items, and armor for all characters.
         </p>
       </CardContent>

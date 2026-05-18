@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { InfoLabel } from '@/components/InfoLabel'
 
 interface ArmorTrackerProps {
   armorAvailable: boolean
@@ -33,7 +34,7 @@ export function ArmorTracker({
 
   return (
     <div className="space-y-2">
-      <span className="text-sm font-semibold uppercase tracking-wider">Armor</span>
+      <InfoLabel label="Armor" tip="Click to mark as used when you absorb harm. Resets at End of Score." />
       <div className="flex gap-3">
         {ARMOR_SLOTS.map(({ label, availableField, usedField }) => {
           const available = state[availableField]

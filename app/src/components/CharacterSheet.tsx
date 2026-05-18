@@ -17,9 +17,10 @@ import { ActionRatings } from '@/components/trackers/ActionRatings'
 import { LoadTracker } from '@/components/trackers/LoadTracker'
 import { CoinTracker } from '@/components/trackers/CoinTracker'
 import { ArmorTracker } from '@/components/trackers/ArmorTracker'
+import { ContactsList } from '@/components/trackers/ContactsList'
 import { PLAYBOOK_XP_TRIGGERS } from '@/lib/game-data'
 import { HERITAGE_OPTIONS, BACKGROUND_OPTIONS, VICE_OPTIONS } from '@/lib/types'
-import type { Character, ActionName, LoadLevel } from '@/lib/types'
+import type { Character, CharacterContact, ActionName, LoadLevel } from '@/lib/types'
 
 interface CharacterSheetProps {
   character: Character
@@ -238,6 +239,20 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
             onActionChange={(action: ActionName, value: number) =>
               onUpdate({ [action]: value })
             }
+            readonly={readonly}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Contacts */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Contacts</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ContactsList
+            contacts={character.contacts}
+            onChange={(contacts: CharacterContact[]) => onUpdate({ contacts })}
             readonly={readonly}
           />
         </CardContent>

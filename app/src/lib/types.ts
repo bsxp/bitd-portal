@@ -19,6 +19,12 @@ export const ACTION_RATINGS = {
 export type ActionName = typeof ACTION_RATINGS[keyof typeof ACTION_RATINGS][number]
 export type AttributeName = keyof typeof ACTION_RATINGS
 
+export interface CharacterContact {
+  name: string
+  relationship: 'friend' | 'rival' | 'other'
+  description: string | null
+}
+
 export interface Campaign {
   id: string
   name: string
@@ -109,6 +115,7 @@ export interface Character {
   load_level: LoadLevel | null
   items_carried: string[]
   special_abilities: string[]
+  contacts: CharacterContact[]
   notes: string | null
   created_at: string
 }

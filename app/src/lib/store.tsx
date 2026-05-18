@@ -75,6 +75,7 @@ function makeDemoCharacter(overrides: Partial<Character>): Character {
     load_level: null,
     items_carried: [],
     special_abilities: [],
+    contacts: [],
     notes: null,
     created_at: new Date().toISOString(),
     ...overrides,
@@ -101,6 +102,10 @@ const DEMO_CHARACTERS: Character[] = [
     armor_available: true,
     heavy_armor_available: true,
     special_armor_available: true,
+    contacts: [
+      { name: 'Marlane, a pugilist', relationship: 'friend', description: null },
+      { name: 'Chael, a vicious thug', relationship: 'rival', description: null },
+    ],
   }),
   makeDemoCharacter({
     name: 'Melvir Dalmore',
@@ -117,6 +122,10 @@ const DEMO_CHARACTERS: Character[] = [
     study: 2,
     survey: 1,
     consort: 1,
+    contacts: [
+      { name: 'Nyryx, a possessor ghost', relationship: 'friend', description: null },
+      { name: 'Scurlock, a vampire', relationship: 'rival', description: null },
+    ],
   }),
   makeDemoCharacter({
     name: 'Arden Keel',
@@ -132,6 +141,10 @@ const DEMO_CHARACTERS: Character[] = [
     consort: 2,
     finesse: 1,
     survey: 1,
+    contacts: [
+      { name: 'Riven, a club owner', relationship: 'friend', description: null },
+      { name: 'Bazso Baz, Lampblack boss', relationship: 'other', description: 'Uneasy business acquaintance' },
+    ],
   }),
 ]
 

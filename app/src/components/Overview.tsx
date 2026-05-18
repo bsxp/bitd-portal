@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator'
 import { ClockDisplay } from '@/components/trackers/ClockDisplay'
 import { cn } from '@/lib/utils'
 import { FACTION_STATUS_LABELS } from '@/lib/types'
-import { Minus, Plus, RotateCcw, Flame } from 'lucide-react'
+import { Minus, Plus, RotateCcw, Flame, TrendingUp, Coins } from 'lucide-react'
 import type { Character, Crew, Clock, Faction } from '@/lib/types'
 
 interface OverviewProps {
@@ -18,6 +18,7 @@ interface OverviewProps {
   onCharacterClick: (id: string) => void
   onCharacterUpdate?: (id: string, updates: Partial<Character>) => void
   onCrewUpdate?: (updates: Partial<Crew>) => void
+  onClockUpdate?: (id: string, updates: Partial<Clock>) => void
   onEndScore?: () => void
 }
 
@@ -97,27 +98,38 @@ function GMQuickActions({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">GM Quick Actions</CardTitle>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {crew && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1 text-xs"
-                onClick={() => {
-                  const newHeat = Math.min(crew.heat + 1, 9)
-                  if (newHeat >= 9) {
-                    onCrewUpdate({
-                      heat: 0,
-                      wanted_level: Math.min(crew.wanted_level + 1, 4),
-                    })
-                  } else {
-                    onCrewUpdate({ heat: newHeat })
-                  }
-                }}
-              >
-                <Flame className="h-3 w-3" />
-                +1 Heat
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1 text-xs"
+                  onClick={() => onCrewUpdate({ rep: Math.min(crew.rep + 1, 12) })}
+                >
+                  <TrendingUp className="h-3 w-3" />
+                  +1 Rep
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1 text-xs"
+                  onClick={() => {
+                    const newHeat = Math.min(crew.heat + 1, 9)
+                    if (newHeat >= 9) {
+                      onCrewUpdate({
+                        heat: 0,
+                        wanted_level: Math.min(crew.wanted_level + 1, 4),
+                      })
+                    } else {
+                      onCrewUpdate({ heat: newHeat })
+                    }
+                  }}
+                >
+                  <Flame className="h-3 w-3" />
+                  +1 Heat
+                </Button>
+              </>
             )}
             <Button
               variant="outline"
@@ -208,16 +220,40 @@ function GMQuickActions({
 
               <Separator orientation="vertical" className="h-6" />
 
-              {/* Stress pips visual */}
-              <div className="hidden sm:flex">
-                <StressPips stress={c.stress} />
+              {/* Coin +/- */}
+              <div className="flex items-center gap-1">
+                <Coins className="h-3 w-3 text-yellow-600" />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-6 w-6"
+                  disabled={c.coin <= 0}
+                  onClick={() =>
+                    onCharacterUpdate(c.id, { coin: Math.max(0, c.coin - 1) })
+                  }
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <span className="w-5 text-center text-sm font-bold tabular-nums text-yellow-600">
+                  {c.coin}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() =>
+                    onCharacterUpdate(c.id, { coin: c.coin + 1 })
+                  }
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
               </div>
             </div>
           ))}
         </div>
         <p className="mt-2 text-[10px] text-muted-foreground">
-          Harm: type a description and press Enter — it fills the next empty slot (Lv1 → Lv2 → Lv3).
-          End Score resets all load, items, and armor for every character.
+          Harm: type and press Enter to fill the next empty slot (Lv1 → Lv2 → Lv3).
+          End Score resets load, items, and armor for all characters.
         </p>
       </CardContent>
     </Card>
@@ -330,6 +366,7 @@ export function Overview({
   onCharacterClick,
   onCharacterUpdate,
   onCrewUpdate,
+  onClockUpdate,
   onEndScore,
 }: OverviewProps) {
   const activeClocks = clocks.filter((c) => c.active && c.filled < c.segments)
@@ -426,7 +463,15 @@ export function Overview({
               <div className="flex flex-wrap gap-5">
                 {activeClocks.map((clock) => (
                   <div key={clock.id} className="flex items-center gap-2">
-                    <ClockDisplay segments={clock.segments} filled={clock.filled} size={36} readonly />
+                    <ClockDisplay
+                      segments={clock.segments}
+                      filled={clock.filled}
+                      size={36}
+                      onSegmentClick={isGM && onClockUpdate
+                        ? (filled) => onClockUpdate(clock.id, { filled })
+                        : undefined}
+                      readonly={!isGM || !onClockUpdate}
+                    />
                     <div>
                       <span className="text-sm font-medium">{clock.name}</span>
                       <span className="ml-1.5 text-xs text-muted-foreground">

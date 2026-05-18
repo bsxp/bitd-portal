@@ -138,6 +138,7 @@ function AppContent() {
               onCharacterClick={navigateToCharacter}
               onCharacterUpdate={updateCharacter}
               onCrewUpdate={updateCrew}
+              onClockUpdate={updateClock}
               onEndScore={endScore}
             />
           </TabsContent>

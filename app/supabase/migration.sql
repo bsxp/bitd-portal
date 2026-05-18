@@ -43,6 +43,7 @@ CREATE TABLE bitd.crews (
   crew_xp INTEGER NOT NULL DEFAULT 0 CHECK (crew_xp BETWEEN 0 AND 11),
   special_abilities TEXT[] DEFAULT '{}',
   upgrades TEXT[] DEFAULT '{}',
+  claims_seized TEXT[] DEFAULT '{}',
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );

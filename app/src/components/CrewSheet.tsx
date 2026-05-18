@@ -242,6 +242,22 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
         </Card>
       </div>
 
+      {/* Notes */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Notes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <textarea
+            value={crew.notes ?? ''}
+            onChange={(e) => onUpdate({ notes: e.target.value || null })}
+            readOnly={readonly}
+            placeholder="Crew notes, plans, contacts..."
+            className="w-full min-h-[80px] rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+          />
+        </CardContent>
+      </Card>
+
       {/* Claims Map */}
       {crew.crew_type && (
         <Card>

@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -98,6 +99,16 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
               </Select>
             </div>
           </div>
+          <div className="mt-3">
+            <Label className="text-xs text-muted-foreground">Vice Purveyor</Label>
+            <Input
+              value={character.vice_purveyor ?? ''}
+              onChange={(e) => onUpdate({ vice_purveyor: e.target.value || null })}
+              readOnly={readonly}
+              placeholder="Who do you go to for your vice?"
+              className="mt-1 h-8"
+            />
+          </div>
           {character.look && (
             <p className="mt-2 text-sm text-muted-foreground">{character.look}</p>
           )}
@@ -112,6 +123,10 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
               stress={character.stress}
               trauma={character.trauma}
               onStressChange={(stress) => onUpdate({ stress })}
+              onTraumaOut={(newTrauma) => onUpdate({
+                stress: 0,
+                trauma: [...character.trauma, newTrauma],
+              })}
               readonly={readonly}
             />
             <Separator />
@@ -240,6 +255,22 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
               onUpdate({ items_carried: items })
             }}
             readonly={readonly}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Notes */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Notes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <textarea
+            value={character.notes ?? ''}
+            onChange={(e) => onUpdate({ notes: e.target.value || null })}
+            readOnly={readonly}
+            placeholder="Session notes, contacts, plans..."
+            className="w-full min-h-[80px] rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
           />
         </CardContent>
       </Card>

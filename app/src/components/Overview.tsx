@@ -101,34 +101,61 @@ function GMQuickActions({
           <div className="flex flex-wrap gap-2">
             {crew && (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1 text-xs"
-                  onClick={() => onCrewUpdate({ rep: Math.min(crew.rep + 1, 12) })}
-                >
-                  <TrendingUp className="h-3 w-3" />
-                  +1 Rep
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1 text-xs"
-                  onClick={() => {
-                    const newHeat = Math.min(crew.heat + 1, 9)
-                    if (newHeat >= 9) {
-                      onCrewUpdate({
-                        heat: 0,
-                        wanted_level: Math.min(crew.wanted_level + 1, 4),
-                      })
-                    } else {
-                      onCrewUpdate({ heat: newHeat })
-                    }
-                  }}
-                >
-                  <Flame className="h-3 w-3" />
-                  +1 Heat
-                </Button>
+                <div className="flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3 text-blue-500" />
+                  <span className="text-xs font-medium">Rep</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-6 w-6"
+                    disabled={crew.rep <= 0}
+                    onClick={() => onCrewUpdate({ rep: Math.max(0, crew.rep - 1) })}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <span className="w-5 text-center text-sm font-bold tabular-nums">{crew.rep}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-6 w-6"
+                    disabled={crew.rep >= 12}
+                    onClick={() => onCrewUpdate({ rep: Math.min(12, crew.rep + 1) })}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Flame className="h-3 w-3 text-orange-500" />
+                  <span className="text-xs font-medium">Heat</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-6 w-6"
+                    disabled={crew.heat <= 0}
+                    onClick={() => onCrewUpdate({ heat: Math.max(0, crew.heat - 1) })}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <span className="w-5 text-center text-sm font-bold tabular-nums">{crew.heat}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => {
+                      const newHeat = crew.heat + 1
+                      if (newHeat >= 9) {
+                        onCrewUpdate({
+                          heat: 0,
+                          wanted_level: Math.min(crew.wanted_level + 1, 4),
+                        })
+                      } else {
+                        onCrewUpdate({ heat: newHeat })
+                      }
+                    }}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
               </>
             )}
             <Button

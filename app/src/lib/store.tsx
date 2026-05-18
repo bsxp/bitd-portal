@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import type { Character, Crew, Clock, Faction, CampaignRole } from './types'
+import { CANONICAL_FACTIONS } from './game-data'
 
 interface GameState {
   role: CampaignRole
@@ -177,14 +178,18 @@ const DEMO_CLOCKS: Clock[] = [
   },
 ]
 
-const DEMO_FACTIONS: Faction[] = [
-  { id: crypto.randomUUID(), campaign_id: 'demo', name: 'The Lampblacks', tier: 2, hold: 'weak', status: 1, category: 'Underworld', description: 'Former laborers turned to crime', notes: null, created_at: new Date().toISOString() },
-  { id: crypto.randomUUID(), campaign_id: 'demo', name: 'The Red Sashes', tier: 2, hold: 'weak', status: -2, category: 'Underworld', description: 'Sword-fighting aristocratic criminals', notes: null, created_at: new Date().toISOString() },
-  { id: crypto.randomUUID(), campaign_id: 'demo', name: 'The Hive', tier: 4, hold: 'strong', status: 0, category: 'Underworld', description: 'Massive criminal organization', notes: null, created_at: new Date().toISOString() },
-  { id: crypto.randomUUID(), campaign_id: 'demo', name: 'Bluecoats', tier: 3, hold: 'strong', status: -1, category: 'Institutions', description: 'City police force, corrupt to the core', notes: null, created_at: new Date().toISOString() },
-  { id: crypto.randomUUID(), campaign_id: 'demo', name: 'Inspectors', tier: 3, hold: 'strong', status: 0, category: 'Institutions', description: 'Elite investigative body', notes: null, created_at: new Date().toISOString() },
-  { id: crypto.randomUUID(), campaign_id: 'demo', name: 'The Dimmer Sisters', tier: 3, hold: 'strong', status: 0, category: 'Underworld', description: 'Reclusive occultists in a Silkshore manor', notes: null, created_at: new Date().toISOString() },
-]
+const DEMO_FACTIONS: Faction[] = CANONICAL_FACTIONS.map((f) => ({
+  id: crypto.randomUUID(),
+  campaign_id: 'demo',
+  name: f.name,
+  tier: f.tier,
+  hold: f.hold,
+  status: 0,
+  category: f.category,
+  description: f.description,
+  notes: null,
+  created_at: new Date().toISOString(),
+}))
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<CampaignRole>('gm')

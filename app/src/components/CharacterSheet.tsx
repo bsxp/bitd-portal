@@ -1,0 +1,248 @@
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { StressTracker } from '@/components/trackers/StressTracker'
+import { HarmTracker } from '@/components/trackers/HarmTracker'
+import { ClockDisplay } from '@/components/trackers/ClockDisplay'
+import { XPTracker } from '@/components/trackers/XPTracker'
+import { ActionRatings } from '@/components/trackers/ActionRatings'
+import { LoadTracker } from '@/components/trackers/LoadTracker'
+import { CoinTracker } from '@/components/trackers/CoinTracker'
+import { ArmorTracker } from '@/components/trackers/ArmorTracker'
+import { PLAYBOOK_XP_TRIGGERS } from '@/lib/game-data'
+import { HERITAGE_OPTIONS, BACKGROUND_OPTIONS, VICE_OPTIONS } from '@/lib/types'
+import type { Character, ActionName, LoadLevel } from '@/lib/types'
+
+interface CharacterSheetProps {
+  character: Character
+  onUpdate: (updates: Partial<Character>) => void
+  readonly?: boolean
+}
+
+export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheetProps) {
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-baseline gap-3">
+            <CardTitle className="text-2xl">{character.name}</CardTitle>
+            {character.alias && (
+              <span className="text-lg text-muted-foreground">"{character.alias}"</span>
+            )}
+            {character.playbook && (
+              <span className="rounded bg-primary/10 px-2 py-0.5 text-sm font-semibold uppercase text-primary">
+                {character.playbook}
+              </span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Heritage</Label>
+              <Select
+                value={character.heritage ?? undefined}
+                onValueChange={(v) => { if (v) onUpdate({ heritage: v }) }}
+                disabled={readonly}
+              >
+                <SelectTrigger className="mt-1 h-8 capitalize">
+                  <SelectValue placeholder="Select heritage..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {HERITAGE_OPTIONS.map((h) => (
+                    <SelectItem key={h} value={h} className="capitalize">{h}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Background</Label>
+              <Select
+                value={character.background ?? undefined}
+                onValueChange={(v) => { if (v) onUpdate({ background: v }) }}
+                disabled={readonly}
+              >
+                <SelectTrigger className="mt-1 h-8 capitalize">
+                  <SelectValue placeholder="Select background..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {BACKGROUND_OPTIONS.map((b) => (
+                    <SelectItem key={b} value={b} className="capitalize">{b}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Vice</Label>
+              <Select
+                value={character.vice ?? undefined}
+                onValueChange={(v) => { if (v) onUpdate({ vice: v }) }}
+                disabled={readonly}
+              >
+                <SelectTrigger className="mt-1 h-8 capitalize">
+                  <SelectValue placeholder="Select vice..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {VICE_OPTIONS.map((v) => (
+                    <SelectItem key={v} value={v} className="capitalize">{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {character.look && (
+            <p className="mt-2 text-sm text-muted-foreground">{character.look}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Volatile State - the stuff that changes constantly */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardContent className="space-y-4 pt-4">
+            <StressTracker
+              stress={character.stress}
+              trauma={character.trauma}
+              onStressChange={(stress) => onUpdate({ stress })}
+              readonly={readonly}
+            />
+            <Separator />
+            <HarmTracker
+              harmLevel3={character.harm_level3}
+              harmLevel2a={character.harm_level2_a}
+              harmLevel2b={character.harm_level2_b}
+              harmLevel1a={character.harm_level1_a}
+              harmLevel1b={character.harm_level1_b}
+              onHarmChange={(field, value) =>
+                onUpdate({ [field]: value || null })
+              }
+              readonly={readonly}
+            />
+            <Separator />
+            <div className="flex items-center gap-6">
+              <ClockDisplay
+                segments={4}
+                filled={character.healing_clock}
+                size={56}
+                label="Healing"
+                onSegmentClick={(filled) => onUpdate({ healing_clock: filled })}
+                readonly={readonly}
+              />
+              <ArmorTracker
+                armorAvailable={character.armor_available}
+                heavyArmorAvailable={character.heavy_armor_available}
+                specialArmorAvailable={character.special_armor_available}
+                armorUsed={character.armor_used}
+                heavyArmorUsed={character.heavy_armor_used}
+                specialArmorUsed={character.special_armor_used}
+                onToggle={(field, value) => onUpdate({ [field]: value })}
+                readonly={readonly}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="space-y-4 pt-4">
+            <CoinTracker
+              label="Coin"
+              value={character.coin}
+              max={4}
+              onChange={(coin) => onUpdate({ coin })}
+              readonly={readonly}
+            />
+            <CoinTracker
+              label="Stash"
+              value={character.stash}
+              max={40}
+              onChange={(stash) => onUpdate({ stash })}
+              readonly={readonly}
+            />
+            <Separator />
+            <div className="space-y-2">
+              <XPTracker
+                label="Playbook"
+                current={character.playbook_xp}
+                max={8}
+                onXPChange={(playbook_xp) => onUpdate({ playbook_xp })}
+                readonly={readonly}
+              />
+              {character.playbook && (
+                <p className="text-xs italic text-muted-foreground">
+                  {PLAYBOOK_XP_TRIGGERS[character.playbook]}
+                </p>
+              )}
+              <XPTracker
+                label="Insight"
+                current={character.insight_xp}
+                max={6}
+                onXPChange={(insight_xp) => onUpdate({ insight_xp })}
+                readonly={readonly}
+              />
+              <XPTracker
+                label="Prowess"
+                current={character.prowess_xp}
+                max={6}
+                onXPChange={(prowess_xp) => onUpdate({ prowess_xp })}
+                readonly={readonly}
+              />
+              <XPTracker
+                label="Resolve"
+                current={character.resolve_xp}
+                max={6}
+                onXPChange={(resolve_xp) => onUpdate({ resolve_xp })}
+                readonly={readonly}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Action Ratings */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ActionRatings
+            character={character}
+            onActionChange={(action: ActionName, value: number) =>
+              onUpdate({ [action]: value })
+            }
+            readonly={readonly}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Load - only visible during scores */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Load & Items</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LoadTracker
+            playbook={character.playbook}
+            loadLevel={character.load_level}
+            itemsCarried={character.items_carried}
+            onLoadLevelChange={(load_level: LoadLevel | null) => onUpdate({ load_level })}
+            onItemToggle={(item: string) => {
+              const items = character.items_carried.includes(item)
+                ? character.items_carried.filter((i) => i !== item)
+                : [...character.items_carried, item]
+              onUpdate({ items_carried: items })
+            }}
+            readonly={readonly}
+          />
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

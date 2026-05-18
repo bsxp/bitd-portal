@@ -193,12 +193,12 @@ function GMQuickActions({
               <Separator orientation="vertical" className="h-6" />
 
               {/* Quick harm entry */}
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground w-8">Harm</span>
+              <div className="flex min-w-0 flex-1 items-center gap-1">
+                <span className="text-xs text-muted-foreground w-8 shrink-0">Harm</span>
                 <Input
                   data-harm-input={c.id}
                   placeholder="Description..."
-                  className="h-6 w-20 text-xs"
+                  className="h-6 min-w-0 flex-1 text-xs"
                 />
                 {[1, 2, 3].map((level) => {
                   const full = level === 3

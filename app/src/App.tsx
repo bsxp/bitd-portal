@@ -26,7 +26,7 @@ import { GameProvider, useGame } from '@/lib/store'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { Shield, Users, Clock, Swords, Eye, EyeOff, Plus, Home } from 'lucide-react'
-import type { Clock as ClockType } from '@/lib/types'
+import type { Clock as ClockType, ClockScope } from '@/lib/types'
 
 function AppContent() {
   const {
@@ -34,7 +34,7 @@ function AppContent() {
     characters, updateCharacter,
     crew, updateCrew,
     clocks, updateClock, addClock, deleteClock,
-    factions, updateFaction,
+    factions, updateFaction, addFaction, deleteFaction,
     activeCharacterId, setActiveCharacter,
     endScore,
   } = useGame()
@@ -42,6 +42,7 @@ function AppContent() {
   const [newClockOpen, setNewClockOpen] = useState(false)
   const [newClockName, setNewClockName] = useState('')
   const [newClockSegments, setNewClockSegments] = useState('4')
+  const [newClockScope, setNewClockScope] = useState<ClockScope>('score')
   const [newClockVisible, setNewClockVisible] = useState(true)
 
   const [activeTab, setActiveTab] = useState('overview')
@@ -63,6 +64,7 @@ function AppContent() {
       segments: parseInt(newClockSegments),
       filled: 0,
       clock_type: 'general',
+      scope: newClockScope,
       visible_to_players: newClockVisible,
       active: true,
       notes: null,
@@ -71,6 +73,7 @@ function AppContent() {
     addClock(clock)
     setNewClockName('')
     setNewClockSegments('4')
+    setNewClockScope('score')
     setNewClockVisible(true)
     setNewClockOpen(false)
   }
@@ -119,12 +122,10 @@ function AppContent() {
               <Clock className="h-4 w-4" />
               Clocks
             </TabsTrigger>
-            {isGM && (
-              <TabsTrigger value="factions" className="gap-1.5">
-                <Swords className="h-4 w-4" />
-                Factions
-              </TabsTrigger>
-            )}
+            <TabsTrigger value="factions" className="gap-1.5">
+              <Swords className="h-4 w-4" />
+              Factions
+            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -222,6 +223,30 @@ function AppContent() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div>
+                        <Label>Scope</Label>
+                        <div className="mt-1 flex gap-2">
+                          {(['score', 'long-term'] as const).map((s) => (
+                            <button
+                              key={s}
+                              onClick={() => setNewClockScope(s)}
+                              className={cn(
+                                'rounded-md border px-3 py-1.5 text-sm font-medium capitalize transition-colors',
+                                newClockScope === s
+                                  ? 'border-primary bg-primary text-primary-foreground'
+                                  : 'border-muted-foreground/30',
+                              )}
+                            >
+                              {s === 'score' ? 'Score' : 'Long-term'}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="mt-1 text-[10px] text-muted-foreground">
+                          {newClockScope === 'score'
+                            ? 'Cleared when the score ends.'
+                            : 'Persists across sessions.'}
+                        </p>
+                      </div>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setNewClockVisible(!newClockVisible)}
@@ -252,15 +277,16 @@ function AppContent() {
             />
           </TabsContent>
 
-          {/* Factions Tab (GM only) */}
-          {isGM && (
-            <TabsContent value="factions">
-              <FactionTracker
-                factions={factions}
-                onUpdate={updateFaction}
-              />
-            </TabsContent>
-          )}
+          {/* Factions Tab */}
+          <TabsContent value="factions">
+            <FactionTracker
+              factions={factions}
+              onUpdate={updateFaction}
+              onAdd={isGM ? addFaction : undefined}
+              onDelete={isGM ? deleteFaction : undefined}
+              readonly={!isGM}
+            />
+          </TabsContent>
         </Tabs>
       </main>
     </div>

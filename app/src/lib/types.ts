@@ -3,6 +3,7 @@ export type Playbook = 'cutter' | 'hound' | 'leech' | 'lurk' | 'slide' | 'spider
 export type Hold = 'strong' | 'weak'
 export type LoadLevel = 'light' | 'normal' | 'heavy'
 export type CampaignRole = 'gm' | 'player'
+export type ClockScope = 'long-term' | 'score'
 
 export const TRAUMA_OPTIONS = ['cold', 'haunted', 'obsessed', 'paranoid', 'reckless', 'soft', 'unstable', 'vicious'] as const
 export const VICE_OPTIONS = ['faith', 'gambling', 'luxury', 'obligation', 'pleasure', 'stupor', 'weird'] as const
@@ -119,6 +120,7 @@ export interface Clock {
   segments: number
   filled: number
   clock_type: string
+  scope: ClockScope
   visible_to_players: boolean
   active: boolean
   notes: string | null
@@ -135,6 +137,7 @@ export interface Faction {
   category: string | null
   description: string | null
   notes: string | null
+  player_notes: string | null
   created_at: string
 }
 

@@ -19,6 +19,8 @@ interface GameActions {
   addClock: (clock: Clock) => void
   deleteClock: (id: string) => void
   updateFaction: (id: string, updates: Partial<Faction>) => void
+  addFaction: (faction: Faction) => void
+  deleteFaction: (id: string) => void
   setActiveCharacter: (id: string | null) => void
   endScore: () => void
 }
@@ -161,35 +163,55 @@ const DEMO_CLOCKS: Clock[] = [
   {
     id: crypto.randomUUID(), campaign_id: 'demo',
     name: 'Bluecoat Investigation', segments: 6, filled: 2,
-    clock_type: 'danger', visible_to_players: true, active: true,
+    clock_type: 'danger', scope: 'long-term', visible_to_players: true, active: true,
     notes: null, created_at: new Date().toISOString(),
   },
   {
     id: crypto.randomUUID(), campaign_id: 'demo',
     name: "Red Sash Retaliation", segments: 4, filled: 1,
-    clock_type: 'faction', visible_to_players: false, active: true,
+    clock_type: 'faction', scope: 'long-term', visible_to_players: false, active: true,
     notes: 'After the crew stole the artifact', created_at: new Date().toISOString(),
   },
   {
     id: crypto.randomUUID(), campaign_id: 'demo',
     name: "Vex's Contact in Ironhook", segments: 8, filled: 3,
-    clock_type: 'project', visible_to_players: true, active: true,
+    clock_type: 'project', scope: 'long-term', visible_to_players: true, active: true,
+    notes: null, created_at: new Date().toISOString(),
+  },
+  {
+    id: crypto.randomUUID(), campaign_id: 'demo',
+    name: 'Manor Security Alert', segments: 4, filled: 0,
+    clock_type: 'danger', scope: 'score', visible_to_players: true, active: true,
     notes: null, created_at: new Date().toISOString(),
   },
 ]
 
-const DEMO_FACTIONS: Faction[] = CANONICAL_FACTIONS.map((f) => ({
-  id: crypto.randomUUID(),
-  campaign_id: 'demo',
-  name: f.name,
-  tier: f.tier,
-  hold: f.hold,
-  status: 0,
-  category: f.category,
-  description: f.description,
-  notes: null,
-  created_at: new Date().toISOString(),
-}))
+function makeDemoFaction(name: string, statusOverride?: number, notesOverride?: string): Faction | null {
+  const canonical = CANONICAL_FACTIONS.find((f) => f.name === name)
+  if (!canonical) return null
+  return {
+    id: crypto.randomUUID(),
+    campaign_id: 'demo',
+    name: canonical.name,
+    tier: canonical.tier,
+    hold: canonical.hold,
+    status: statusOverride ?? 0,
+    category: canonical.category,
+    description: canonical.description,
+    notes: notesOverride ?? null,
+    player_notes: null,
+    created_at: new Date().toISOString(),
+  }
+}
+
+const DEMO_FACTIONS: Faction[] = [
+  makeDemoFaction('The Lampblacks', 1, 'Bazso offered work — considering alliance'),
+  makeDemoFaction('The Red Sashes', -2),
+  makeDemoFaction('The Bluecoats', -1),
+  makeDemoFaction('The Hive'),
+  makeDemoFaction('The Dimmer Sisters'),
+  makeDemoFaction('Inspectors'),
+].filter((f): f is Faction => f !== null)
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<CampaignRole>('gm')
@@ -229,6 +251,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     )
   }, [])
 
+  const addFaction = useCallback((faction: Faction) => {
+    setFactions((prev) => [...prev, faction])
+  }, [])
+
+  const deleteFaction = useCallback((id: string) => {
+    setFactions((prev) => prev.filter((f) => f.id !== id))
+  }, [])
+
   const endScore = useCallback(() => {
     setCharacters((prev) =>
       prev.map((c) => ({
@@ -240,6 +270,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
         special_armor_used: false,
       })),
     )
+    setClocks((prev) =>
+      prev.map((c) =>
+        c.scope === 'score' ? { ...c, active: false } : c,
+      ),
+    )
   }, [])
 
   return (
@@ -249,7 +284,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         characters, updateCharacter,
         crew, updateCrew,
         clocks, updateClock, addClock, deleteClock,
-        factions, updateFaction,
+        factions, updateFaction, addFaction, deleteFaction,
         activeCharacterId, setActiveCharacter,
         endScore,
       }}

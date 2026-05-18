@@ -43,8 +43,8 @@ export function ClockDisplay({ segments, filled, size = 64, label, onSegmentClic
           r={radius - 2}
           fill="none"
           stroke="currentColor"
-          strokeWidth={2}
-          className="text-muted-foreground/40"
+          strokeWidth={2.5}
+          className="text-muted-foreground/60"
         />
         {Array.from({ length: segments }).map((_, i) => (
           <path
@@ -52,11 +52,11 @@ export function ClockDisplay({ segments, filled, size = 64, label, onSegmentClic
             d={getSegmentPath(i)}
             className={cn(
               'transition-colors',
-              i < filled ? 'fill-primary' : 'fill-transparent',
-              !readonly && onSegmentClick && 'cursor-pointer hover:fill-primary/50',
+              i < filled ? 'fill-primary' : 'fill-muted-foreground/10',
+              !readonly && onSegmentClick && 'cursor-pointer hover:fill-primary/40',
             )}
             stroke="currentColor"
-            strokeWidth={1}
+            strokeWidth={1.5}
             onClick={() => handleClick(i)}
           />
         ))}

@@ -98,7 +98,7 @@ function GMQuickActions({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">GM Quick Actions</CardTitle>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-4">
             {crew && (
               <>
                 <div className="flex items-center gap-1">

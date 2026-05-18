@@ -34,8 +34,8 @@ export function StressTracker({ stress, trauma, onStressChange, onTraumaOut, rea
             className={cn(
               'h-7 w-7 rounded-sm border-2 transition-colors',
               i < stress
-                ? 'border-red-500 bg-red-500'
-                : 'border-muted-foreground/30 bg-transparent',
+                ? 'border-red-400 bg-red-500'
+                : 'border-muted-foreground/50 bg-muted',
               !readonly && 'cursor-pointer hover:border-red-400',
             )}
           />

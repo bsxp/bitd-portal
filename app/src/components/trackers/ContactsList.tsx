@@ -40,12 +40,12 @@ export function ContactsList({ contacts, onChange, readonly }: ContactsListProps
 
       {friends.length > 0 && (
         <div className="space-y-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-green-600">Friends</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-green-400">Friends</span>
           {friends.map((c, i) => {
             const idx = contacts.indexOf(c)
             return (
               <div key={i} className="flex items-center gap-2 text-sm">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
                 <span className="flex-1">{c.name}</span>
                 {!readonly && (
                   <button onClick={() => handleRemove(idx)} className="text-muted-foreground hover:text-destructive">
@@ -60,12 +60,12 @@ export function ContactsList({ contacts, onChange, readonly }: ContactsListProps
 
       {rivals.length > 0 && (
         <div className="space-y-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-red-600">Rivals</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-red-400">Rivals</span>
           {rivals.map((c, i) => {
             const idx = contacts.indexOf(c)
             return (
               <div key={i} className="flex items-center gap-2 text-sm">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
                 <span className="flex-1">{c.name}</span>
                 {!readonly && (
                   <button onClick={() => handleRemove(idx)} className="text-muted-foreground hover:text-destructive">
@@ -85,7 +85,7 @@ export function ContactsList({ contacts, onChange, readonly }: ContactsListProps
             const idx = contacts.indexOf(c)
             return (
               <div key={i} className="flex items-center gap-2 text-sm">
-                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+                <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/70" />
                 <span className="flex-1">
                   {c.name}
                   {c.description && <span className="text-xs text-muted-foreground"> — {c.description}</span>}
@@ -118,14 +118,14 @@ export function ContactsList({ contacts, onChange, readonly }: ContactsListProps
                   key={r}
                   onClick={() => setNewRelationship(r)}
                   className={cn(
-                    'rounded border px-2 py-0.5 text-[10px] font-medium capitalize transition-colors',
+                    'rounded border-2 px-2 py-0.5 text-[10px] font-medium capitalize transition-colors',
                     newRelationship === r
                       ? r === 'friend'
-                        ? 'border-green-500 bg-green-500/20 text-green-600'
+                        ? 'border-green-400 bg-green-500/20 text-green-400'
                         : r === 'rival'
-                        ? 'border-red-500 bg-red-500/20 text-red-600'
+                        ? 'border-red-400 bg-red-500/20 text-red-400'
                         : 'border-muted-foreground bg-muted text-muted-foreground'
-                      : 'border-muted-foreground/30',
+                      : 'border-muted-foreground/40 bg-muted',
                   )}
                 >
                   {r}

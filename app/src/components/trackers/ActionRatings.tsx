@@ -36,10 +36,10 @@ export function ActionRatings({ character, onActionChange, readonly }: ActionRat
                     <div
                       key={i}
                       className={cn(
-                        'h-2.5 w-2.5 rounded-full',
+                        'h-3 w-3 rounded-full',
                         i < attrRating
                           ? 'bg-primary'
-                          : 'border border-muted-foreground/30',
+                          : 'border-2 border-muted-foreground/50 bg-muted',
                       )}
                     />
                   ))}
@@ -56,10 +56,10 @@ export function ActionRatings({ character, onActionChange, readonly }: ActionRat
                           onClick={() => handleDotClick(action, i)}
                           disabled={readonly}
                           className={cn(
-                            'h-3.5 w-3.5 rounded-full border transition-colors',
+                            'h-4 w-4 rounded-full border-2 transition-colors',
                             i < value
                               ? 'border-foreground bg-foreground'
-                              : 'border-muted-foreground/40 bg-transparent',
+                              : 'border-muted-foreground/50 bg-muted',
                             !readonly && 'cursor-pointer hover:border-foreground/70',
                           )}
                         />

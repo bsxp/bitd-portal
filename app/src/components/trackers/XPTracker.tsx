@@ -30,10 +30,10 @@ export function XPTracker({ label, tip, current, max, onXPChange, readonly }: XP
             onClick={() => handleClick(i)}
             disabled={readonly}
             className={cn(
-              'h-4 w-4 rounded-full border transition-colors',
+              'h-4 w-4 rounded-full border-2 transition-colors',
               i < current
                 ? 'border-primary bg-primary'
-                : 'border-muted-foreground/40 bg-transparent',
+                : 'border-muted-foreground/50 bg-muted',
               !readonly && 'cursor-pointer hover:border-primary/70',
             )}
           />

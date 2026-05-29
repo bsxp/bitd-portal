@@ -23,13 +23,13 @@ export function ActionRatings({ character, onActionChange, readonly }: ActionRat
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
+    <div className="space-y-4">
       {(Object.entries(ACTION_RATINGS) as [AttributeName, readonly ActionName[]][]).map(
         ([attribute, actions]) => {
           const attrRating = actions.filter((a) => (character[a] as number) > 0).length
           return (
             <div key={attribute} className="space-y-1">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <InfoLabel label={attribute} tip={ATTRIBUTE_TIPS[attribute]} />
                 <div className="flex items-center gap-1">
                   {Array.from({ length: 4 }).map((_, i) => (

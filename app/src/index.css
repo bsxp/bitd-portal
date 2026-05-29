@@ -131,3 +131,29 @@
     font-family: var(--font-heading);
   }
 }
+/* Map ping: a radar blip that grows and fades. */
+@keyframes map-ping {
+  0%   { transform: scale(0.2); opacity: 0.9; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@keyframes map-ping-dot {
+  0%   { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.5); opacity: 0; }
+}
+.map-ping-ring {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 44px; height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 9999px;
+  border: 3px solid;
+  animation: map-ping 1.2s ease-out forwards;
+}
+.map-ping-dot {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 10px; height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 9999px;
+  animation: map-ping-dot 1.2s ease-out forwards;
+}

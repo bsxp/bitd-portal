@@ -22,22 +22,51 @@ import { CrewSheet } from '@/components/CrewSheet'
 import { ClockDashboard } from '@/components/ClockDashboard'
 import { FactionTracker } from '@/components/FactionTracker'
 import { Overview } from '@/components/Overview'
+import { GameMap } from '@/components/GameMap'
+import { ScorePanel } from '@/components/ScorePanel'
+import { LoginGate } from '@/components/LoginGate'
 import { GameProvider, useGame } from '@/lib/store'
+import { SessionProvider, useSession } from '@/lib/session'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { Shield, Users, Clock, Swords, Eye, EyeOff, Plus, Home } from 'lucide-react'
+import { Shield, Users, Clock, Swords, Eye, EyeOff, Plus, Home, Map, Target, Loader2, LogOut } from 'lucide-react'
 import type { Clock as ClockType, ClockScope } from '@/lib/types'
+import type { OnlinePlayer } from '@/lib/store'
+
+function OnlinePlayers({ players }: { players: OnlinePlayer[] }) {
+  // de-dupe by seat (a seat may briefly appear twice during reconnects)
+  const seen = new Set<string>()
+  const unique = players.filter((p) => (seen.has(p.seat) ? false : (seen.add(p.seat), true)))
+  if (unique.length === 0) return null
+  return (
+    <div className="hidden items-center gap-1.5 sm:flex">
+      {unique.slice(0, 6).map((p) => (
+        <div
+          key={p.seat}
+          title={`${p.name} (online)`}
+          className="flex h-6 items-center gap-1 rounded-full border border-green-500/40 bg-green-500/10 px-2 text-[11px] font-medium text-green-700 dark:text-green-400"
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+          {p.name === 'Game Master' ? 'GM' : p.name.split(' ')[0]}
+        </div>
+      ))}
+    </div>
+  )
+}
 
 function AppContent() {
   const {
-    role, setRole,
+    loading, loadError, onlinePlayers,
+    role,
     characters, updateCharacter,
     crew, updateCrew,
     clocks, updateClock, addClock, deleteClock,
     factions, updateFaction, addFaction, deleteFaction,
     activeCharacterId, setActiveCharacter,
+    currentScore,
     endScore,
   } = useGame()
+  const { session, releaseSeat } = useSession()
 
   const [newClockOpen, setNewClockOpen] = useState(false)
   const [newClockName, setNewClockName] = useState('')
@@ -59,7 +88,7 @@ function AppContent() {
   function handleAddClock() {
     const clock: ClockType = {
       id: crypto.randomUUID(),
-      campaign_id: 'demo',
+      campaign_id: session?.campaignId ?? 'demo',
       name: newClockName || 'New Clock',
       segments: parseInt(newClockSegments),
       filled: 0,
@@ -78,27 +107,50 @@ function AppContent() {
     setNewClockOpen(false)
   }
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center gap-2 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        Loading campaign…
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-center">
+        <p className="text-destructive">{loadError}</p>
+        <Button variant="outline" onClick={releaseSeat}>Back</Button>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Top bar */}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-          <h1 className="text-lg font-bold tracking-tight">
-            Blades in the Dark
-          </h1>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setRole(isGM ? 'player' : 'gm')}
-              className={cn(
-                'flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
-                isGM
-                  ? 'border-amber-500/50 bg-amber-500/10 text-amber-600'
-                  : 'border-blue-500/50 bg-blue-500/10 text-blue-600',
-              )}
-            >
-              {isGM ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-              {isGM ? 'GM View' : 'Player View'}
-            </button>
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4">
+          <div className="flex min-w-0 items-baseline gap-2">
+            <h1 className="truncate text-lg font-bold tracking-tight">
+              {session?.campaignName ?? 'Blades in the Dark'}
+            </h1>
+            <span className={cn(
+              'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase',
+              isGM ? 'bg-amber-500/15 text-amber-600' : 'bg-blue-500/15 text-blue-600',
+            )}>
+              {isGM ? 'GM' : 'Player'}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <OnlinePlayers players={onlinePlayers} />
+            <div className="hidden text-sm md:block">
+              <span className="text-muted-foreground">You: </span>
+              <span className="font-medium">{session?.seat?.name}</span>
+            </div>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={releaseSeat}>
+              <LogOut className="h-3.5 w-3.5" />
+              Switch
+            </Button>
           </div>
         </div>
       </header>
@@ -114,6 +166,16 @@ function AppContent() {
               <Users className="h-4 w-4" />
               Characters
             </TabsTrigger>
+            <TabsTrigger value="score" className="gap-1.5">
+              <Target className="h-4 w-4" />
+              Score
+              {currentScore && (
+                <span className={cn(
+                  'h-1.5 w-1.5 rounded-full',
+                  currentScore.status === 'active' ? 'bg-red-500' : 'bg-amber-500',
+                )} />
+              )}
+            </TabsTrigger>
             <TabsTrigger value="crew" className="gap-1.5">
               <Shield className="h-4 w-4" />
               Crew
@@ -125,6 +187,10 @@ function AppContent() {
             <TabsTrigger value="factions" className="gap-1.5">
               <Swords className="h-4 w-4" />
               Factions
+            </TabsTrigger>
+            <TabsTrigger value="map" className="gap-1.5">
+              <Map className="h-4 w-4" />
+              Map
             </TabsTrigger>
           </TabsList>
 
@@ -171,6 +237,11 @@ function AppContent() {
                 onUpdate={(updates) => updateCharacter(activeCharacter.id, updates)}
               />
             )}
+          </TabsContent>
+
+          {/* Score Tab */}
+          <TabsContent value="score">
+            <ScorePanel isGM={isGM} />
           </TabsContent>
 
           {/* Crew Tab */}
@@ -287,18 +358,35 @@ function AppContent() {
               readonly={!isGM}
             />
           </TabsContent>
+
+          {/* Map Tab */}
+          <TabsContent value="map">
+            <GameMap isGM={isGM} />
+          </TabsContent>
         </Tabs>
       </main>
     </div>
   )
 }
 
+function Root() {
+  const { session, sessionId } = useSession()
+  if (!session || !session.seat) {
+    return <LoginGate />
+  }
+  return (
+    <GameProvider campaignId={session.campaignId} seat={session.seat} sessionId={sessionId}>
+      <AppContent />
+    </GameProvider>
+  )
+}
+
 export default function App() {
   return (
     <TooltipProvider>
-      <GameProvider>
-        <AppContent />
-      </GameProvider>
+      <SessionProvider>
+        <Root />
+      </SessionProvider>
     </TooltipProvider>
   )
 }

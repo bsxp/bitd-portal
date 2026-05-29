@@ -55,6 +55,89 @@ export const CANONICAL_FACTIONS: CanonicalFaction[] = [
   { name: 'Skovlander Refugees', tier: 3, hold: 'weak', category: 'Labor & Trade', description: 'Displaced refugees from the Unity War. Concentrated in Charhollow and the Docks.' },
 ]
 
+export interface SpecialAbility {
+  name: string
+  description: string
+}
+
+export const PLAYBOOK_ABILITIES: Record<Playbook, SpecialAbility[]> = {
+  cutter: [
+    { name: 'Battleborn', description: 'You may expend your special armor to reduce harm from an attack in combat or to push yourself during a fight.' },
+    { name: 'Bodyguard', description: 'When you protect a teammate, take +1d to your resistance roll. When you gather info to anticipate possible threats in the current situation, you get +1 effect.' },
+    { name: 'Ghost Fighter', description: 'You may imbue your hands, melee weapons, or tools with spirit energy. You gain potency in combat vs. the supernatural.' },
+    { name: 'Leader', description: 'When you Command a cohort in combat, they continue to fight when they would otherwise break (they\'re not taken out when they suffer level 3 harm). They gain potency and 1 armor.' },
+    { name: 'Mule', description: 'Your load limits are higher. Light: 5. Normal: 7. Heavy: 8.' },
+    { name: 'Not to Be Trifled With', description: 'You can push yourself to do one of the following: perform a feat of physical force that verges on the superhuman — engage a small gang on equal footing in close combat.' },
+    { name: 'Savage', description: 'When you unleash physical violence, it\'s especially frightening. When you Command a frightened target, take +1d.' },
+    { name: 'Vigorous', description: 'You recover from harm faster. Permanently fill in one of your healing clock segments. Take +1d to healing treatment rolls.' },
+    { name: 'Veteran', description: 'Choose a special ability from another source.' },
+  ],
+  hound: [
+    { name: 'Sharpshooter', description: 'You can push yourself to do one of the following: make a ranged attack at extreme distance beyond what\'s normal for the weapon — unleash a barrage of rapid fire to suppress the enemy.' },
+    { name: 'Focused', description: 'You may expend your special armor to resist a consequence of surprise or mental harm (fear, confusion, losing track of someone) or to push yourself for ranged combat or tracking.' },
+    { name: 'Ghost Hunter', description: 'Your hunting pet is imbued with spirit energy. It gains potency when tracking or fighting the supernatural, and gains an arcane ability: ghost-Loss form, ## ## spirit-Loss sight, or another.' },
+    { name: 'Scout', description: 'When you gather info to discover the location of a target, you get +1 effect. When you hide in a+1 prepared position or use camouflage, you get +1d to rolls to avoid detection.' },
+    { name: 'Survivor', description: 'From physical training and target practice, you recover from harm faster. Permanently fill in one of your healing clock segments. Take +1d to healing treatment rolls.' },
+    { name: 'Tough as Nails', description: 'Penalties from harm are one level less severe (though level 4 harm is still fatal).' },
+    { name: 'Vengeful', description: 'You gain an additional xp trigger: You got payback against someone who harmed you or someone you care about. If your crew helped you get payback, also mark crew xp.' },
+    { name: 'Veteran', description: 'Choose a special ability from another source.' },
+  ],
+  leech: [
+    { name: 'Alchemist', description: 'When you invent or craft a creation with alchemical features, take +1 result level to your roll. You begin with one special formula already known.' },
+    { name: 'Analyst', description: 'During downtime, you get two ticks to distribute among any long term project clocks that involve investigation or learning a new formula or design plan.' },
+    { name: 'Artificer', description: 'When you invent or craft a creation with spark-craft features, take +1 result level to your roll. You begin with one special design already known.' },
+    { name: 'Fortitude', description: 'You may expend your special armor to resist a consequence of fatigue, weakness, or chemical effects, or to push yourself when working with technical skill or handling alchemicals.' },
+    { name: 'Ghost Ward', description: 'You know how to Wreck an area with arcane substances and methods so it is resistant to supernatural entities and effects.' },
+    { name: 'Physicker', description: 'You can Tinker with bones, blood, and bodily humours to treat wounds or stabilize the dying. You may Study a malady or corpse. Everyone in your crew gets +1d to their healing treatment rolls.' },
+    { name: 'Saboteur', description: 'When you Wreck, your work is much quieter than it should be and the damage is hidden from casual inspection.' },
+    { name: 'Venomous', description: 'Choose a drug or poison (from your bandolier stock) to which you have become immune. You can push yourself to secrete it through your skin or saliva.' },
+    { name: 'Veteran', description: 'Choose a special ability from another source.' },
+  ],
+  lurk: [
+    { name: 'Infiltrator', description: 'You are not affected by quality or Tier when you bypass security measures.' },
+    { name: 'Ambush', description: 'When you attack from hiding or spring a trap, you get +1d.' },
+    { name: 'Daredevil', description: 'When you roll a desperate action, you get +1d to your roll if you also take -1d to any resistance rolls against consequences from your action.' },
+    { name: 'The Devil\'s Footsteps', description: 'When you push yourself, choose one of the following additional benefits: perform a feat of athletics that verges on the superhuman — maneuver to confuse your enemies so they mistakenly attack each other.' },
+    { name: 'Expertise', description: 'Choose one of your action ratings. When you lead a group action using that action, you can suffer only 1 stress at most, regardless of the number of failed rolls.' },
+    { name: 'Ghost Veil', description: 'You may expend your special armor to resist a consequence of detection or to push yourself for a feat of stealth or athletics.' },
+    { name: 'Reflexes', description: 'When there\'s a question about who acts first, the answer is you.' },
+    { name: 'Shadow', description: 'You may expend your special armor to resist a consequence from detection or to push yourself when you contort to avoid detection.' },
+    { name: 'Veteran', description: 'Choose a special ability from another source.' },
+  ],
+  slide: [
+    { name: 'Rook\'s Gambit', description: 'Take 2 stress to roll your best action rating while performing a different action. Say how you adapt your skill to this situation.' },
+    { name: 'Cloak & Dagger', description: 'When you use a disguise or other form of covert misdirection, you get +1d to rolls to confuse or redirect suspicion.' },
+    { name: 'Ghost Voice', description: 'You know the secret method to interact with a ghost or demon as if it were a normal person, rather than as an arcane entity. You gain potency when communicating with the supernatural.' },
+    { name: 'Like Looking into a Mirror', description: 'You can always tell when someone is lying to you.' },
+    { name: 'A Little Something on the Side', description: 'At the end of each downtime phase, you earn +2 stash.' },
+    { name: 'Mesmerism', description: 'When you Sway someone, you may cause them to forget that it\'s happened until they next interact with you.' },
+    { name: 'Subterfuge', description: 'You may expend your special armor to resist a consequence from suspicion or persuasion, or to push yourself for subterfuge.' },
+    { name: 'Trust in Me', description: 'You get +1d vs. a target with whom you have an intimate relationship.' },
+    { name: 'Veteran', description: 'Choose a special ability from another source.' },
+  ],
+  spider: [
+    { name: 'Foresight', description: 'Two free load of items per score. After the engagement roll, you may spend 1 stress to flash back for free.' },
+    { name: 'Calculating', description: 'Due to your careful planning, during downtime, you may give yourself or a crew member +1 downtime activity.' },
+    { name: 'Connected', description: 'During downtime, you get +1 result level when you acquire an asset or reduce heat.' },
+    { name: 'Ghost Contract', description: 'When you shake on a deal, you and your partner — Loss Loss Loss in it are bound to honor the agreement or suffer level 3 harm, "Cursed."' },
+    { name: 'Jail Bird', description: 'When incarcerated, your wanted level counts as 1 less, your ## Tier as 1 more, and you gain +1 faction status with a pointed group while you are in prison.' },
+    { name: 'Mastermind', description: 'You may expend your special armor to protect a teammate, or to push yourself when you gather information or work on a long-term project.' },
+    { name: 'Weaving the Web', description: 'You gain +1d to Consort when you gather information on a target for a score. You get +1d to the engagement roll for that operation.' },
+    { name: 'Veteran', description: 'Choose a special ability from another source.' },
+  ],
+  whisper: [
+    { name: 'Compel', description: 'You can Attune to the ghost field to force a nearby ghost to appear and obey a command you give it. You are not supernaturally terrified by a ghost you summon or compel (though your allies may be).' },
+    { name: 'Ghost Mind', description: 'You\'re always aware of supernatural entities in your presence. Take +1d when you gather info about the supernatural.' },
+    { name: 'Iron Will', description: 'You\'re immune to the terror that some supernatural entities inflict on sight. Take +1d to resistance rolls with Resolve.' },
+    { name: 'Occultist', description: 'You know the secret ways to Consort with ancient powers, forgotten gods or demons. Once you\'ve consorted with one, you get +1d to command cultists who worship it.' },
+    { name: 'Ritual', description: 'You can Study an occult ritual (or create a new one) to summon a supernatural effect or being. You know the arcane methods to perform ritual sorcery. You begin with one ritual already learned.' },
+    { name: 'Strange Methods', description: 'When you invent or craft a creation with arcane features, take +1 result level to your roll. You begin with one arcane design already known.' },
+    { name: 'Tempest', description: 'You can push yourself to do one of the following: unleash a stroke of lightning as a weapon — Loss summon a storm in your immediate vicinity (torrential rain, roaring winds, heavy fog, chilling frost/snow, etc.).' },
+    { name: 'Warded', description: 'You may expend your special armor to resist a supernatural consequence, or to push yourself when you deal with arcane forces.' },
+    { name: 'Veteran', description: 'Choose a special ability from another source.' },
+  ],
+}
+
 export const PLAYBOOK_XP_TRIGGERS: Record<Playbook, string> = {
   cutter: 'Address a challenge with violence or coercion.',
   hound: 'Address a challenge with tracking or violence.',
@@ -74,33 +157,87 @@ export const CREW_XP_TRIGGERS: Record<CrewType, string> = {
   smugglers: 'Execute a successful clandestine delivery, territory control, or expedition.',
 }
 
-export const PLAYBOOK_ITEMS: Record<Playbook, string[]> = {
-  cutter: ['Fine hand weapon', 'Fine heavy weapon', 'Scary weapon or tool', 'Manacles & chain', 'Rage essence vial', 'Spiritbane charm'],
-  hound: ['Fine pair of pistols', 'Fine long rifle', 'Electroplasmic ammunition', 'A trained hunting pet', 'Spyglass', 'Spiritbane charm'],
-  leech: ['Fine tinkering tools', 'Fine wrecking tools', 'Blowgun & darts, syringes', 'Bandolier (3 uses)', 'Gadgets (2 uses)', 'Spiritbane charm'],
-  lurk: ['Fine lockpicks', 'Fine shadow cloak', 'Light climbing gear', 'Silence potion vial', 'Dark-sight goggles', 'Spiritbane charm'],
-  slide: ['Fine clothes & jewelry', 'Fine disguise kit', 'Fine loaded dice, cards', 'Trance powder', 'A cane-sword', 'Spiritbane charm'],
-  spider: ['Fine cover identity', 'Fine bottle of whiskey', 'Blueprints', 'Small wrecking tools', 'Spiritbane charm', 'Signal ring'],
-  whisper: ['Fine lightning hook', 'Fine spirit mask', 'Electroplasm vials', 'Spirit bottles (2)', 'Ghost key', 'Spiritbane charm'],
+export interface GameItem {
+  name: string
+  load: number
 }
 
-export const STANDARD_ITEMS = [
-  'A Blade or Two',
-  'Throwing Knives',
-  'A Pistol',
-  'A 2nd Pistol',
-  'A Large Weapon',
-  'An Unusual Weapon',
-  'Armor',
-  'Armor +Heavy',
-  'Burglary Gear',
-  'Climbing Gear',
-  'Arcane Implements',
-  'Documents',
-  'Subterfuge Supplies',
-  'Demolition Tools',
-  'Tinkering Tools',
-  'Lantern',
+export const PLAYBOOK_ITEMS: Record<Playbook, GameItem[]> = {
+  cutter: [
+    { name: 'Fine hand weapon', load: 1 },
+    { name: 'Fine heavy weapon', load: 2 },
+    { name: 'Scary weapon or tool', load: 1 },
+    { name: 'Manacles & chain', load: 1 },
+    { name: 'Rage essence vial', load: 1 },
+    { name: 'Spiritbane charm', load: 1 },
+  ],
+  hound: [
+    { name: 'Fine pair of pistols', load: 1 },
+    { name: 'Fine long rifle', load: 2 },
+    { name: 'Electroplasmic ammunition', load: 1 },
+    { name: 'A trained hunting pet', load: 0 },
+    { name: 'Spyglass', load: 1 },
+    { name: 'Spiritbane charm', load: 1 },
+  ],
+  leech: [
+    { name: 'Fine tinkering tools', load: 1 },
+    { name: 'Fine wrecking tools', load: 2 },
+    { name: 'Blowgun & darts, syringes', load: 1 },
+    { name: 'Bandolier', load: 1 },
+    { name: 'Gadgets', load: 1 },
+    { name: 'Spiritbane charm', load: 1 },
+  ],
+  lurk: [
+    { name: 'Fine lockpicks', load: 1 },
+    { name: 'Fine shadow cloak', load: 2 },
+    { name: 'Light climbing gear', load: 1 },
+    { name: 'Silence potion vial', load: 1 },
+    { name: 'Dark-sight goggles', load: 1 },
+    { name: 'Spiritbane charm', load: 1 },
+  ],
+  slide: [
+    { name: 'Fine clothes & jewelry', load: 1 },
+    { name: 'Fine disguise kit', load: 1 },
+    { name: 'Fine loaded dice, cards', load: 1 },
+    { name: 'Trance powder', load: 1 },
+    { name: 'A cane-sword', load: 1 },
+    { name: 'Spiritbane charm', load: 1 },
+  ],
+  spider: [
+    { name: 'Fine cover identity', load: 0 },
+    { name: 'Fine bottle of whiskey', load: 1 },
+    { name: 'Blueprints', load: 1 },
+    { name: 'Small wrecking tools', load: 1 },
+    { name: 'Spiritbane charm', load: 1 },
+    { name: 'Signal ring', load: 0 },
+  ],
+  whisper: [
+    { name: 'Fine lightning hook', load: 2 },
+    { name: 'Fine spirit mask', load: 1 },
+    { name: 'Electroplasm vials', load: 1 },
+    { name: 'Spirit bottles (2)', load: 1 },
+    { name: 'Ghost key', load: 0 },
+    { name: 'Spiritbane charm', load: 1 },
+  ],
+}
+
+export const STANDARD_ITEMS: GameItem[] = [
+  { name: 'A Blade or Two', load: 1 },
+  { name: 'Throwing Knives', load: 1 },
+  { name: 'A Pistol', load: 1 },
+  { name: 'A 2nd Pistol', load: 1 },
+  { name: 'A Large Weapon', load: 2 },
+  { name: 'An Unusual Weapon', load: 1 },
+  { name: 'Armor', load: 2 },
+  { name: '+Heavy', load: 3 },
+  { name: 'Burglary Gear', load: 1 },
+  { name: 'Climbing Gear', load: 2 },
+  { name: 'Arcane Implements', load: 1 },
+  { name: 'Documents', load: 1 },
+  { name: 'Subterfuge Supplies', load: 1 },
+  { name: 'Demolition Tools', load: 2 },
+  { name: 'Tinkering Tools', load: 1 },
+  { name: 'Lantern', load: 1 },
 ]
 
 export const LOAD_LIMITS: Record<Playbook, { light: number; normal: number; heavy: number }> = {

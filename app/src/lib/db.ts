@@ -1,0 +1,108 @@
+import { supabase } from './supabase'
+import { makeDemoData, type CampaignData } from './demo-data'
+import type { Character, Crew, Clock, Faction, Score, MapToken } from './types'
+
+// The Supabase client is configured with the `bitd` schema. Each entity table
+// stores the full typed object in a `data` jsonb column keyed by its own id.
+
+export interface CampaignRow {
+  id: string
+  name: string
+  join_code: string
+  map_image_url: string | null
+}
+
+type EntityTable = 'characters' | 'crews' | 'clocks' | 'factions' | 'scores' | 'map_tokens'
+
+export async function findCampaignByCode(code: string): Promise<CampaignRow | null> {
+  const { data, error } = await supabase
+    .from('campaigns')
+    .select('id,name,join_code,map_image_url')
+    .eq('join_code', code)
+    .maybeSingle()
+  if (error) throw error
+  return (data as CampaignRow) ?? null
+}
+
+export async function getCampaign(id: string): Promise<CampaignRow | null> {
+  const { data, error } = await supabase
+    .from('campaigns')
+    .select('id,name,join_code,map_image_url')
+    .eq('id', id)
+    .maybeSingle()
+  if (error) throw error
+  return (data as CampaignRow) ?? null
+}
+
+async function loadTable<T>(table: EntityTable, campaignId: string): Promise<T[]> {
+  const { data, error } = await supabase.from(table).select('data').eq('campaign_id', campaignId)
+  if (error) throw error
+  return (data ?? []).map((r) => (r as { data: T }).data)
+}
+
+export async function loadCampaignData(campaignId: string): Promise<CampaignData> {
+  const [characters, crews, clocks, factions, scores, mapTokens] = await Promise.all([
+    loadTable<Character>('characters', campaignId),
+    loadTable<Crew>('crews', campaignId),
+    loadTable<Clock>('clocks', campaignId),
+    loadTable<Faction>('factions', campaignId),
+    loadTable<Score>('scores', campaignId),
+    loadTable<MapToken>('map_tokens', campaignId),
+  ])
+  return {
+    characters,
+    crew: crews[0] ?? null,
+    clocks,
+    factions,
+    currentScore: scores[0] ?? null,
+    mapTokens,
+  }
+}
+
+export async function saveEntity(table: EntityTable, campaignId: string, entity: { id: string }): Promise<void> {
+  const { error } = await supabase
+    .from(table)
+    .upsert({ id: entity.id, campaign_id: campaignId, data: entity, updated_at: new Date().toISOString() })
+  if (error) throw error
+}
+
+export async function saveEntities(table: EntityTable, campaignId: string, entities: { id: string }[]): Promise<void> {
+  if (entities.length === 0) return
+  const { error } = await supabase
+    .from(table)
+    .upsert(entities.map((e) => ({ id: e.id, campaign_id: campaignId, data: e, updated_at: new Date().toISOString() })))
+  if (error) throw error
+}
+
+export async function deleteEntity(table: EntityTable, id: string): Promise<void> {
+  const { error } = await supabase.from(table).delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function setCampaignMap(campaignId: string, url: string | null): Promise<void> {
+  const { error } = await supabase.from('campaigns').update({ map_image_url: url }).eq('id', campaignId)
+  if (error) throw error
+}
+
+// Push a fresh demo dataset into a campaign. Used the first time a campaign
+// is opened and has no characters yet.
+async function seedCampaign(campaignId: string): Promise<CampaignData> {
+  const d = makeDemoData(campaignId)
+  await Promise.all([
+    saveEntities('characters', campaignId, d.characters),
+    d.crew ? saveEntities('crews', campaignId, [d.crew]) : Promise.resolve(),
+    saveEntities('clocks', campaignId, d.clocks),
+    saveEntities('factions', campaignId, d.factions),
+    d.currentScore ? saveEntities('scores', campaignId, [d.currentScore]) : Promise.resolve(),
+    saveEntities('map_tokens', campaignId, d.mapTokens),
+  ])
+  return d
+}
+
+export async function loadOrSeedCampaign(campaignId: string): Promise<CampaignData> {
+  const data = await loadCampaignData(campaignId)
+  if (data.characters.length === 0) {
+    return seedCampaign(campaignId)
+  }
+  return data
+}

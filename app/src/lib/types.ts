@@ -157,3 +157,36 @@ export const FACTION_STATUS_LABELS: Record<number, string> = {
   '-2': 'Hostile',
   '-3': 'War',
 }
+
+export type Position = 'controlled' | 'risky' | 'desperate'
+export type ScoreStatus = 'planning' | 'active'
+
+export const POSITION_INFO: Record<Position, { label: string; detail: string }> = {
+  controlled: { label: 'Controlled', detail: 'You act on your terms. Minor consequences, you can pull back.' },
+  risky: { label: 'Risky', detail: 'You go head to head. Standard consequences — the default.' },
+  desperate: { label: 'Desperate', detail: 'You overreach. Serious consequences, but you mark xp.' },
+}
+
+export interface Score {
+  id: string
+  campaign_id: string
+  title: string
+  target: string | null
+  plan_type: string | null
+  plan_detail: string | null
+  position: Position | null
+  status: ScoreStatus
+  payoff_coin: number
+  rep_gained: number
+  heat_gained: number
+  notes: string | null
+  created_at: string
+}
+
+export interface MapToken {
+  id: string
+  label: string
+  color: string
+  x: number
+  y: number
+}

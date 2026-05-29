@@ -1,4 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState } from 'react'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
@@ -18,8 +19,10 @@ import { LoadTracker } from '@/components/trackers/LoadTracker'
 import { CoinTracker } from '@/components/trackers/CoinTracker'
 import { ArmorTracker } from '@/components/trackers/ArmorTracker'
 import { ContactsList } from '@/components/trackers/ContactsList'
-import { PLAYBOOK_XP_TRIGGERS } from '@/lib/game-data'
+import { PLAYBOOK_XP_TRIGGERS, PLAYBOOK_ABILITIES } from '@/lib/game-data'
 import { HERITAGE_OPTIONS, BACKGROUND_OPTIONS, VICE_OPTIONS } from '@/lib/types'
+import { cn } from '@/lib/utils'
+import { ChevronDown, User } from 'lucide-react'
 import type { Character, CharacterContact, ActionName, LoadLevel } from '@/lib/types'
 
 interface CharacterSheetProps {
@@ -28,273 +31,412 @@ interface CharacterSheetProps {
   readonly?: boolean
 }
 
-export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheetProps) {
+function SectionHeader({ label, className }: { label: string; className?: string }) {
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-baseline gap-3">
-            <CardTitle className="text-2xl">{character.name}</CardTitle>
-            {character.alias && (
-              <span className="text-lg text-muted-foreground">"{character.alias}"</span>
-            )}
-            {character.playbook && (
-              <span className="rounded bg-primary/10 px-2 py-0.5 text-sm font-semibold uppercase text-primary">
-                {character.playbook}
-              </span>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div>
-              <Label className="text-xs text-muted-foreground">Heritage</Label>
-              <Select
-                value={character.heritage ?? undefined}
-                onValueChange={(v) => { if (v) onUpdate({ heritage: v }) }}
-                disabled={readonly}
-              >
-                <SelectTrigger className="mt-1 h-8 capitalize">
-                  <SelectValue placeholder="Select heritage..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {HERITAGE_OPTIONS.map((h) => (
-                    <SelectItem key={h} value={h} className="capitalize">{h}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Background</Label>
-              <Select
-                value={character.background ?? undefined}
-                onValueChange={(v) => { if (v) onUpdate({ background: v }) }}
-                disabled={readonly}
-              >
-                <SelectTrigger className="mt-1 h-8 capitalize">
-                  <SelectValue placeholder="Select background..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {BACKGROUND_OPTIONS.map((b) => (
-                    <SelectItem key={b} value={b} className="capitalize">{b}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Vice</Label>
-              <Select
-                value={character.vice ?? undefined}
-                onValueChange={(v) => { if (v) onUpdate({ vice: v }) }}
-                disabled={readonly}
-              >
-                <SelectTrigger className="mt-1 h-8 capitalize">
-                  <SelectValue placeholder="Select vice..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {VICE_OPTIONS.map((v) => (
-                    <SelectItem key={v} value={v} className="capitalize">{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="mt-3">
-            <Label className="text-xs text-muted-foreground">Vice Purveyor</Label>
-            <Input
-              value={character.vice_purveyor ?? ''}
-              onChange={(e) => onUpdate({ vice_purveyor: e.target.value || null })}
-              readOnly={readonly}
-              placeholder="Who do you go to for your vice?"
-              className="mt-1 h-8"
-            />
-          </div>
-          {character.look && (
-            <p className="mt-2 text-sm text-muted-foreground">{character.look}</p>
-          )}
-        </CardContent>
-      </Card>
+    <h3 className={cn(
+      'text-[10px] font-bold uppercase tracking-widest text-muted-foreground',
+      className,
+    )}>
+      {label}
+    </h3>
+  )
+}
 
-      {/* Volatile State - the stuff that changes constantly */}
-      <div className="grid gap-4 lg:grid-cols-2">
+export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheetProps) {
+  const [profileOpen, setProfileOpen] = useState(false)
+
+  const abilities = character.playbook ? PLAYBOOK_ABILITIES[character.playbook] : []
+
+  return (
+    <div className="space-y-3">
+      {/* ── IDENTITY BAR ── */}
+      <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-baseline gap-2">
+          <h2 className="truncate text-2xl font-bold">{character.name}</h2>
+          {character.alias && (
+            <span className="shrink-0 text-base text-muted-foreground">"{character.alias}"</span>
+          )}
+          {character.playbook && (
+            <span className="shrink-0 rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold uppercase text-primary">
+              {character.playbook}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => setProfileOpen(p => !p)}
+          className={cn(
+            'flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground',
+            profileOpen && 'bg-accent text-foreground',
+          )}
+        >
+          <User className="h-3.5 w-3.5" />
+          Profile
+          <ChevronDown className={cn('h-3 w-3 transition-transform', profileOpen && 'rotate-180')} />
+        </button>
+      </div>
+
+      {/* ── COLLAPSIBLE PROFILE (set-and-forget) ── */}
+      {profileOpen && (
         <Card>
-          <CardContent className="space-y-4 pt-4">
-            <StressTracker
-              stress={character.stress}
-              trauma={character.trauma}
-              onStressChange={(stress) => onUpdate({ stress })}
-              onTraumaOut={(newTrauma) => onUpdate({
-                stress: 0,
-                trauma: [...character.trauma, newTrauma],
-              })}
-              readonly={readonly}
-            />
-            <Separator />
-            <HarmTracker
-              harmLevel3={character.harm_level3}
-              harmLevel2a={character.harm_level2_a}
-              harmLevel2b={character.harm_level2_b}
-              harmLevel1a={character.harm_level1_a}
-              harmLevel1b={character.harm_level1_b}
-              onHarmChange={(field, value) =>
-                onUpdate({ [field]: value || null })
+          <CardContent className="pt-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">Heritage</Label>
+                <Select
+                  value={character.heritage ?? undefined}
+                  onValueChange={(v) => { if (v) onUpdate({ heritage: v }) }}
+                  disabled={readonly}
+                >
+                  <SelectTrigger className="mt-1 h-8 capitalize">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HERITAGE_OPTIONS.map((h) => (
+                      <SelectItem key={h} value={h} className="capitalize">{h}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Background</Label>
+                <Select
+                  value={character.background ?? undefined}
+                  onValueChange={(v) => { if (v) onUpdate({ background: v }) }}
+                  disabled={readonly}
+                >
+                  <SelectTrigger className="mt-1 h-8 capitalize">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BACKGROUND_OPTIONS.map((b) => (
+                      <SelectItem key={b} value={b} className="capitalize">{b}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Vice</Label>
+                <Select
+                  value={character.vice ?? undefined}
+                  onValueChange={(v) => { if (v) onUpdate({ vice: v }) }}
+                  disabled={readonly}
+                >
+                  <SelectTrigger className="mt-1 h-8 capitalize">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VICE_OPTIONS.map((v) => (
+                      <SelectItem key={v} value={v} className="capitalize">{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Vice Purveyor</Label>
+                <Input
+                  value={character.vice_purveyor ?? ''}
+                  onChange={(e) => onUpdate({ vice_purveyor: e.target.value || null })}
+                  readOnly={readonly}
+                  placeholder="NPC name..."
+                  className="mt-1 h-8"
+                />
+              </div>
+            </div>
+            <div className="mt-3">
+              <Label className="text-xs text-muted-foreground">Look</Label>
+              <Input
+                value={character.look ?? ''}
+                onChange={(e) => onUpdate({ look: e.target.value || null })}
+                readOnly={readonly}
+                placeholder="Describe your character's appearance..."
+                className="mt-1 h-8"
+              />
+            </div>
+            {/* Inline summary when profile data is set */}
+            {(character.heritage || character.background) && (
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                {character.heritage && <span><strong>Heritage:</strong> <span className="capitalize">{character.heritage}</span></span>}
+                {character.background && <span><strong>Background:</strong> <span className="capitalize">{character.background}</span></span>}
+                {character.vice && <span><strong>Vice:</strong> <span className="capitalize">{character.vice}</span></span>}
+                {character.vice_purveyor && <span><strong>Purveyor:</strong> {character.vice_purveyor}</span>}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Inline profile summary when collapsed */}
+      {!profileOpen && (character.heritage || character.background || character.look) && (
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+          {character.heritage && <span className="capitalize">{character.heritage}</span>}
+          {character.heritage && character.background && <span>·</span>}
+          {character.background && <span className="capitalize">{character.background}</span>}
+          {character.look && (
+            <>
+              <span>·</span>
+              <span className="italic">{character.look}</span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════
+           TIER 1: ALWAYS VISIBLE — the "during a score" zone
+           Action Ratings + Stress/Harm/Armor side by side
+         ══════════════════════════════════════════════ */}
+      <div className="grid gap-3 lg:grid-cols-[1fr_1fr]">
+
+        {/* LEFT: Stress, Harm, Armor stacked */}
+        <div className="space-y-3">
+          <Card>
+            <CardContent className="pt-4">
+              <StressTracker
+                stress={character.stress}
+                trauma={character.trauma}
+                onStressChange={(stress) => onUpdate({ stress })}
+                onTraumaOut={(newTrauma) => onUpdate({
+                  stress: 0,
+                  trauma: [...character.trauma, newTrauma],
+                })}
+                readonly={readonly}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-4">
+              <HarmTracker
+                harmLevel3={character.harm_level3}
+                harmLevel2a={character.harm_level2_a}
+                harmLevel2b={character.harm_level2_b}
+                harmLevel1a={character.harm_level1_a}
+                harmLevel1b={character.harm_level1_b}
+                onHarmChange={(field, value) =>
+                  onUpdate({ [field]: value || null })
+                }
+                readonly={readonly}
+              />
+              <Separator className="my-3" />
+              <div className="flex items-center gap-6">
+                <ClockDisplay
+                  segments={4}
+                  filled={character.healing_clock}
+                  size={48}
+                  label="Healing"
+                  onSegmentClick={(filled) => onUpdate({ healing_clock: filled })}
+                  readonly={readonly}
+                />
+                <ArmorTracker
+                  armorAvailable={character.armor_available}
+                  heavyArmorAvailable={character.heavy_armor_available}
+                  specialArmorAvailable={character.special_armor_available}
+                  armorUsed={character.armor_used}
+                  heavyArmorUsed={character.heavy_armor_used}
+                  specialArmorUsed={character.special_armor_used}
+                  onToggle={(field, value) => onUpdate({ [field]: value })}
+                  readonly={readonly}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* RIGHT: Action Ratings (vertical) */}
+        <Card>
+          <CardContent className="pt-4">
+            <SectionHeader label="Actions" className="mb-3" />
+            <ActionRatings
+              character={character}
+              onActionChange={(action: ActionName, value: number) =>
+                onUpdate({ [action]: value })
               }
               readonly={readonly}
             />
-            <Separator />
-            <div className="flex items-center gap-6">
-              <ClockDisplay
-                segments={4}
-                filled={character.healing_clock}
-                size={56}
-                label="Healing"
-                onSegmentClick={(filled) => onUpdate({ healing_clock: filled })}
-                readonly={readonly}
-              />
-              <ArmorTracker
-                armorAvailable={character.armor_available}
-                heavyArmorAvailable={character.heavy_armor_available}
-                specialArmorAvailable={character.special_armor_available}
-                armorUsed={character.armor_used}
-                heavyArmorUsed={character.heavy_armor_used}
-                specialArmorUsed={character.special_armor_used}
-                onToggle={(field, value) => onUpdate({ [field]: value })}
-                readonly={readonly}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="space-y-4 pt-4">
-            <CoinTracker
-              label="Coin"
-              tip="Spend on gear, lifestyle, and downtime activities. Stash for retirement."
-              value={character.coin}
-              max={4}
-              onChange={(coin) => onUpdate({ coin })}
-              readonly={readonly}
-            />
-            <CoinTracker
-              label="Stash"
-              tip="Long-term savings. At 40 stash, your character retires in comfort."
-              value={character.stash}
-              max={40}
-              onChange={(stash) => onUpdate({ stash })}
-              readonly={readonly}
-            />
-            <Separator />
-            <div className="space-y-2">
-              <XPTracker
-                label="Playbook"
-                tip="Mark at end of session for your playbook trigger. At max, take a new special ability."
-                current={character.playbook_xp}
-                max={8}
-                onXPChange={(playbook_xp) => onUpdate({ playbook_xp })}
-                readonly={readonly}
-              />
-              {character.playbook && (
-                <p className="text-xs italic text-muted-foreground">
-                  {PLAYBOOK_XP_TRIGGERS[character.playbook]}
-                </p>
-              )}
-              <XPTracker
-                label="Insight"
-                tip="Mark when you roll a desperate action with Hunt, Study, Survey, or Tinker."
-                current={character.insight_xp}
-                max={6}
-                onXPChange={(insight_xp) => onUpdate({ insight_xp })}
-                readonly={readonly}
-              />
-              <XPTracker
-                label="Prowess"
-                tip="Mark when you roll a desperate action with Finesse, Prowl, Skirmish, or Wreck."
-                current={character.prowess_xp}
-                max={6}
-                onXPChange={(prowess_xp) => onUpdate({ prowess_xp })}
-                readonly={readonly}
-              />
-              <XPTracker
-                label="Resolve"
-                tip="Mark when you roll a desperate action with Attune, Command, Consort, or Sway."
-                current={character.resolve_xp}
-                max={6}
-                onXPChange={(resolve_xp) => onUpdate({ resolve_xp })}
-                readonly={readonly}
-              />
-            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Action Ratings */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ActionRatings
-            character={character}
-            onActionChange={(action: ActionName, value: number) =>
-              onUpdate({ [action]: value })
-            }
-            readonly={readonly}
-          />
-        </CardContent>
-      </Card>
+      {/* ══════════════════════════════════════════════
+           TIER 1B: SPECIAL ABILITIES
+           Always visible — players check these mid-action
+         ══════════════════════════════════════════════ */}
+      {abilities.length > 0 && (
+        <Card>
+          <CardContent className="pt-4">
+            <SectionHeader label={`${character.playbook} Abilities`} className="mb-2" />
+            <div className="grid gap-1 sm:grid-cols-2">
+              {abilities.map((ability) => {
+                const selected = character.special_abilities.includes(ability.name)
+                return (
+                  <button
+                    key={ability.name}
+                    onClick={() => {
+                      if (readonly) return
+                      const next = selected
+                        ? character.special_abilities.filter(a => a !== ability.name)
+                        : [...character.special_abilities, ability.name]
+                      onUpdate({ special_abilities: next })
+                    }}
+                    disabled={readonly}
+                    className={cn(
+                      'group flex gap-2 rounded-md border px-3 py-2 text-left transition-colors',
+                      selected
+                        ? 'border-primary/40 bg-primary/5'
+                        : 'border-transparent bg-muted/30 opacity-50',
+                      !readonly && 'cursor-pointer hover:border-primary/30 hover:opacity-100',
+                    )}
+                  >
+                    <div className={cn(
+                      'mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border-2 transition-colors',
+                      selected
+                        ? 'border-primary bg-primary'
+                        : 'border-muted-foreground/40',
+                    )} />
+                    <div className="min-w-0">
+                      <span className={cn(
+                        'text-sm font-semibold',
+                        selected ? 'text-foreground' : 'text-muted-foreground',
+                      )}>
+                        {ability.name}
+                      </span>
+                      <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                        {ability.description}
+                      </p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Contacts */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Contacts</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ContactsList
-            contacts={character.contacts}
-            onChange={(contacts: CharacterContact[]) => onUpdate({ contacts })}
-            readonly={readonly}
-          />
-        </CardContent>
-      </Card>
+      {/* ══════════════════════════════════════════════
+           TIER 2: FREQUENTLY USED
+           Load/Items + Coin/XP side by side
+         ══════════════════════════════════════════════ */}
+      <div className="grid gap-3 lg:grid-cols-[1fr_1fr]">
 
-      {/* Load - only visible during scores */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Load & Items</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <LoadTracker
-            playbook={character.playbook}
-            loadLevel={character.load_level}
-            itemsCarried={character.items_carried}
-            onLoadLevelChange={(load_level: LoadLevel | null) => onUpdate({ load_level })}
-            onItemToggle={(item: string) => {
-              const items = character.items_carried.includes(item)
-                ? character.items_carried.filter((i) => i !== item)
-                : [...character.items_carried, item]
-              onUpdate({ items_carried: items })
-            }}
-            readonly={readonly}
-          />
-        </CardContent>
-      </Card>
+        {/* LEFT: Load & Items */}
+        <Card>
+          <CardContent className="pt-4">
+            <SectionHeader label="Load & Items" className="mb-2" />
+            <LoadTracker
+              playbook={character.playbook}
+              loadLevel={character.load_level}
+              itemsCarried={character.items_carried}
+              onLoadLevelChange={(load_level: LoadLevel | null) => onUpdate({ load_level })}
+              onItemToggle={(item: string) => {
+                const items = character.items_carried.includes(item)
+                  ? character.items_carried.filter((i) => i !== item)
+                  : [...character.items_carried, item]
+                onUpdate({ items_carried: items })
+              }}
+              readonly={readonly}
+            />
+          </CardContent>
+        </Card>
 
-      {/* Notes */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Notes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <textarea
-            value={character.notes ?? ''}
-            onChange={(e) => onUpdate({ notes: e.target.value || null })}
-            readOnly={readonly}
-            placeholder="Session notes, contacts, plans..."
-            className="w-full min-h-[80px] rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
-          />
-        </CardContent>
-      </Card>
+        {/* RIGHT: Coin, Stash, XP */}
+        <div className="space-y-3">
+          <Card>
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <CoinTracker
+                  label="Coin"
+                  tip="Spend on gear, lifestyle, and downtime activities."
+                  value={character.coin}
+                  max={4}
+                  onChange={(coin) => onUpdate({ coin })}
+                  readonly={readonly}
+                />
+                <CoinTracker
+                  label="Stash"
+                  tip="Long-term savings. At 40, your character retires."
+                  value={character.stash}
+                  max={40}
+                  onChange={(stash) => onUpdate({ stash })}
+                  readonly={readonly}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-4">
+              <SectionHeader label="Experience" className="mb-2" />
+              <div className="space-y-1.5">
+                <XPTracker
+                  label="Playbook"
+                  tip="Mark at end of session for your playbook trigger. At max, take a new special ability."
+                  current={character.playbook_xp}
+                  max={8}
+                  onXPChange={(playbook_xp) => onUpdate({ playbook_xp })}
+                  readonly={readonly}
+                />
+                {character.playbook && (
+                  <p className="ml-[calc(5rem+0.5rem)] text-[10px] italic text-muted-foreground">
+                    {PLAYBOOK_XP_TRIGGERS[character.playbook]}
+                  </p>
+                )}
+                <XPTracker
+                  label="Insight"
+                  tip="Mark when you roll a desperate Hunt, Study, Survey, or Tinker."
+                  current={character.insight_xp}
+                  max={6}
+                  onXPChange={(insight_xp) => onUpdate({ insight_xp })}
+                  readonly={readonly}
+                />
+                <XPTracker
+                  label="Prowess"
+                  tip="Mark when you roll a desperate Finesse, Prowl, Skirmish, or Wreck."
+                  current={character.prowess_xp}
+                  max={6}
+                  onXPChange={(prowess_xp) => onUpdate({ prowess_xp })}
+                  readonly={readonly}
+                />
+                <XPTracker
+                  label="Resolve"
+                  tip="Mark when you roll a desperate Attune, Command, Consort, or Sway."
+                  current={character.resolve_xp}
+                  max={6}
+                  onXPChange={(resolve_xp) => onUpdate({ resolve_xp })}
+                  readonly={readonly}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════
+           TIER 3: OCCASIONAL — Contacts & Notes
+         ══════════════════════════════════════════════ */}
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Card>
+          <CardContent className="pt-4">
+            <SectionHeader label="Contacts" className="mb-2" />
+            <ContactsList
+              contacts={character.contacts}
+              onChange={(contacts: CharacterContact[]) => onUpdate({ contacts })}
+              readonly={readonly}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-4">
+            <SectionHeader label="Notes" className="mb-2" />
+            <textarea
+              value={character.notes ?? ''}
+              onChange={(e) => onUpdate({ notes: e.target.value || null })}
+              readOnly={readonly}
+              placeholder="Session notes, plans, reminders..."
+              className="w-full min-h-[100px] rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

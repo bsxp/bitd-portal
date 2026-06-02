@@ -299,6 +299,7 @@ function AppContent() {
               <CrewSheet
                 crew={crew}
                 onUpdate={updateCrew}
+                readonly={!isGM}
               />
             )}
           </TabsContent>

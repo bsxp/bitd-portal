@@ -232,9 +232,12 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
                   <Button
                     variant="outline"
                     size="sm"
+                    disabled={character.healing_clock < 4}
+                    title={character.healing_clock < 4 ? 'Fill the healing clock (4/4) to apply' : undefined}
                     onClick={() => {
-                      // Healing reduces every harm by one level: L3 -> L2, L2 -> L1,
-                      // L1 disperses. Old L2 harms (up to 2) fill the two L1 slots.
+                      // Only fires on a full clock: consume it (reset to 0/4) and
+                      // reduce every harm one level — L3 -> L2, L2 -> L1, L1 disperses.
+                      // Old L2 harms (up to 2) fill the two L1 slots.
                       const downgradedToL1 = [character.harm_level2_a, character.harm_level2_b]
                         .filter((h): h is string => !!h)
                       onUpdate({
@@ -243,7 +246,7 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
                         harm_level2_b: null,
                         harm_level1_a: downgradedToL1[0] ?? null,
                         harm_level1_b: downgradedToL1[1] ?? null,
-                        healing_clock: Math.min(4, character.healing_clock + 1),
+                        healing_clock: 0,
                       })
                     }}
                   >

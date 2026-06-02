@@ -80,6 +80,21 @@ export function ActionRatings({ character, onActionChange, onUpdate, readonly, i
             <div key={attribute} className="space-y-1">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <InfoLabel label={attribute} tip={ATTRIBUTE_TIPS[attribute]} />
+                {/* +up appears only when this attribute's XP track is full. */}
+                {!readonly && xpFull && advanceableActions.length > 0 && (
+                  <button
+                    onClick={() => setAdvancing(isOpen ? null : attribute)}
+                    title="Spend the full XP track to raise one action in this category by 1."
+                    className={cn(
+                      'rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors',
+                      isOpen
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-primary bg-primary/10 text-primary hover:bg-primary/20',
+                    )}
+                  >
+                    +up
+                  </button>
+                )}
                 <div className="flex items-center gap-1">
                   {Array.from({ length: 4 }).map((_, i) => (
                     <div
@@ -120,36 +135,8 @@ export function ActionRatings({ character, onActionChange, onUpdate, readonly, i
                 </div>
               </div>
 
-              {/* Advance affordance for players: disabled until the track is full. */}
-              {!readonly && !isGM && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      if (!xpFull || advanceableActions.length === 0) return
-                      setAdvancing(isOpen ? null : attribute)
-                    }}
-                    disabled={!xpFull || advanceableActions.length === 0}
-                    className={cn(
-                      'rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors',
-                      xpFull && advanceableActions.length > 0
-                        ? 'border-primary bg-primary/10 text-primary cursor-pointer hover:bg-primary/20'
-                        : 'border-muted-foreground/30 text-muted-foreground/50 cursor-not-allowed',
-                    )}
-                    title={
-                      !xpFull
-                        ? 'Fill this attribute’s XP track (6/6) to advance an action.'
-                        : advanceableActions.length === 0
-                          ? 'All actions in this attribute are maxed.'
-                          : 'Spend the full XP track to raise one action by 1.'
-                    }
-                  >
-                    {xpFull ? 'Advance → +1 action' : 'Advance (XP not full)'}
-                  </button>
-                </div>
-              )}
-
-              {/* Player picker: choose which action gets +1 */}
-              {isOpen && !isGM && !readonly && (
+              {/* Picker: choose which action in this category gets +1 */}
+              {isOpen && !readonly && (
                 <div className="flex flex-wrap items-center gap-1 rounded-md border border-primary/40 bg-primary/5 p-1.5">
                   <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Raise:</span>
                   {advanceableActions.map((action) => (

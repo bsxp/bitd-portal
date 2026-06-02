@@ -175,14 +175,24 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
       )}
 
       {/* Inline profile summary when collapsed */}
-      {!profileOpen && (character.heritage || character.background || character.look) && (
+      {!profileOpen && (character.heritage || character.background || character.vice || character.look) && (
         <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
           {character.heritage && <span className="capitalize">{character.heritage}</span>}
-          {character.heritage && character.background && <span>·</span>}
-          {character.background && <span className="capitalize">{character.background}</span>}
+          {character.background && (
+            <>
+              {character.heritage && <span>·</span>}
+              <span className="capitalize">{character.background}</span>
+            </>
+          )}
+          {character.vice && (
+            <>
+              {(character.heritage || character.background) && <span>·</span>}
+              <span className="capitalize">{character.vice}</span>
+            </>
+          )}
           {character.look && (
             <>
-              <span>·</span>
+              {(character.heritage || character.background || character.vice) && <span>·</span>}
               <span className="italic">{character.look}</span>
             </>
           )}
@@ -434,14 +444,19 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
                   onChange={(coin) => onUpdate({ coin })}
                   readonly={readonly}
                 />
-                <CoinTracker
-                  label="Stash"
-                  tip="Long-term savings. At 40, your character retires."
-                  value={character.stash}
-                  max={40}
-                  onChange={(stash) => onUpdate({ stash })}
-                  readonly={readonly}
-                />
+                <div className="space-y-1">
+                  <CoinTracker
+                    label="Stash"
+                    tip="Long-term savings. Every full row of 10 raises your Wealth Level. At 40, your character retires."
+                    value={character.stash}
+                    max={40}
+                    onChange={(stash) => onUpdate({ stash })}
+                    readonly={readonly}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Wealth Level <span className="font-bold text-foreground">{Math.floor(character.stash / 10)}</span>
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>

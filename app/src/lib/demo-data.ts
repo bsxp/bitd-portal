@@ -78,6 +78,7 @@ export interface CampaignData {
   clocks: Clock[]
   factions: Faction[]
   currentScore: Score | null
+  scoreHistory: Score[]
   mapTokens: MapToken[]
 }
 
@@ -207,12 +208,36 @@ export function makeDemoData(campaignId: string): CampaignData {
     plan_detail: "Servants' entrance during the masquerade ball",
     position: 'risky',
     status: 'active',
+    outcome: null,
     payoff_coin: 0,
     rep_gained: 0,
     heat_gained: 0,
     notes: null,
+    outcome_notes: null,
+    completed_at: null,
     created_at: new Date().toISOString(),
   }
+
+  const scoreHistory: Score[] = [
+    {
+      id: crypto.randomUUID(),
+      campaign_id: campaignId,
+      title: 'The Lampblack Warehouse',
+      target: 'Bazso Baz — torch the rival smuggling cache',
+      plan_type: 'Assault',
+      plan_detail: 'Front door, lanterns and fists',
+      position: 'desperate',
+      status: 'completed',
+      outcome: 'success',
+      payoff_coin: 4,
+      rep_gained: 2,
+      heat_gained: 5,
+      notes: 'Cross took a nasty cut to the arm holding the line at the door.',
+      outcome_notes: 'The cache went up in flames, but a Bluecoat patrol caught a good look at Moth on the way out — expect heat.',
+      completed_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+    },
+  ]
 
   const mapTokens: MapToken[] = characters.map((c, i) => ({
     id: crypto.randomUUID(),
@@ -222,5 +247,5 @@ export function makeDemoData(campaignId: string): CampaignData {
     y: 70,
   }))
 
-  return { characters, crew, clocks, factions, currentScore, mapTokens }
+  return { characters, crew, clocks, factions, currentScore, scoreHistory, mapTokens }
 }

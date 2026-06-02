@@ -9,8 +9,8 @@ import { useGame } from '@/lib/store'
 import { PLAN_TYPES } from '@/lib/game-data'
 import { POSITION_INFO } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { Target, Plus, Flag, X, Coins, TrendingUp, Flame } from 'lucide-react'
-import type { Position, Clock } from '@/lib/types'
+import { Target, Plus, Flag, X, Coins, TrendingUp, Flame, History } from 'lucide-react'
+import type { Position, Clock, Score } from '@/lib/types'
 
 const POSITIONS: Position[] = ['controlled', 'risky', 'desperate']
 
@@ -20,9 +20,19 @@ const POSITION_STYLES: Record<Position, string> = {
   desperate: 'border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400',
 }
 
+// The engagement roll sets where the crew BEGINS the action. This is distinct
+// from POSITION_INFO, which describes the consequences of an action roll at that
+// position. Notably, a desperate *starting* position grants no xp on its own —
+// xp comes from rolling a desperate action during play.
+const STARTING_POSITION_INFO: Record<Position, string> = {
+  controlled: "Good result on the engagement roll — you're in a controlled position when the action starts.",
+  risky: "Mixed result on the engagement roll — you're in a risky position when the action starts.",
+  desperate: "Bad result on the engagement roll — you're in a desperate position when the action starts.",
+}
+
 export function ScorePanel({ isGM }: { isGM: boolean }) {
   const {
-    currentScore, startScore, updateScore, wrapScore, abandonScore,
+    currentScore, scoreHistory, startScore, updateScore, wrapScore, abandonScore,
     characters, updateCharacter,
     clocks, addClock, updateClock, deleteClock,
     crew,
@@ -37,18 +47,21 @@ export function ScorePanel({ isGM }: { isGM: boolean }) {
   // ── NO ACTIVE SCORE (Free Play / Downtime) ──
   if (!currentScore) {
     return (
-      <div className="mx-auto max-w-md py-12 text-center">
-        <Target className="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" />
-        <h2 className="text-lg font-semibold">No active score</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          The crew is in free play or downtime. When you pick a target and commit to a job, start the score here.
-        </p>
-        {isGM && (
-          <Button className="mt-4 gap-1.5" onClick={startScore}>
-            <Plus className="h-4 w-4" />
-            Plan a Score
-          </Button>
-        )}
+      <div className="space-y-10">
+        <div className="mx-auto max-w-md pt-12 text-center">
+          <Target className="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" />
+          <h2 className="text-lg font-semibold">No active score</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            The crew is in free play or downtime. When you pick a target and commit to a job, start the score here.
+          </p>
+          {isGM && (
+            <Button className="mt-4 gap-1.5" onClick={startScore}>
+              <Plus className="h-4 w-4" />
+              Plan a Score
+            </Button>
+          )}
+        </div>
+        {scoreHistory.length > 0 && <ScoreLog scores={scoreHistory} />}
       </div>
     )
   }
@@ -220,7 +233,7 @@ export function ScorePanel({ isGM }: { isGM: boolean }) {
               ))}
             </div>
             {score.position && (
-              <p className="text-xs text-muted-foreground">{POSITION_INFO[score.position].detail}</p>
+              <p className="text-xs text-muted-foreground">{STARTING_POSITION_INFO[score.position]}</p>
             )}
           </CardContent>
         </Card>
@@ -294,7 +307,7 @@ export function ScorePanel({ isGM }: { isGM: boolean }) {
                     onSegmentClick={isGM ? (filled) => updateClock(clock.id, { filled }) : undefined}
                     readonly={!isGM}
                   />
-                  <span className="max-w-24 truncate text-center text-xs font-medium">{clock.name}</span>
+                  <span className="w-24 break-words text-center text-xs font-medium leading-tight">{clock.name}</span>
                   {isGM && (
                     <button
                       className="text-[10px] text-destructive hover:underline"
@@ -318,7 +331,7 @@ export function ScorePanel({ isGM }: { isGM: boolean }) {
                 className="h-8 flex-1 text-sm"
               />
               <div className="flex gap-1">
-                {[4, 6, 8].map((seg) => (
+                {[4, 6, 8, 12].map((seg) => (
                   <button
                     key={seg}
                     onClick={() => setNewClockSegments(seg)}
@@ -392,6 +405,27 @@ export function ScorePanel({ isGM }: { isGM: boolean }) {
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">Outcome</Label>
+                <div className="mt-1 grid grid-cols-2 gap-2">
+                  {(['success', 'failure'] as const).map((o) => (
+                    <button
+                      key={o}
+                      onClick={() => updateScore({ outcome: o })}
+                      className={cn(
+                        'rounded-md border-2 px-3 py-2 text-sm font-semibold capitalize transition-colors',
+                        score.outcome === o
+                          ? o === 'success'
+                            ? 'border-green-500/50 bg-green-500/15 text-green-700 dark:text-green-400'
+                            : 'border-red-500/50 bg-red-500/15 text-red-600 dark:text-red-400'
+                          : 'border-muted-foreground/30 text-muted-foreground hover:border-primary/50',
+                      )}
+                    >
+                      {o}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="grid grid-cols-3 gap-4">
                 <PayoffStepper
                   icon={<Coins className="h-3.5 w-3.5 text-yellow-600" />}
@@ -422,10 +456,23 @@ export function ScorePanel({ isGM }: { isGM: boolean }) {
                   )}
                 </p>
               )}
+              <div>
+                <Label className="text-xs text-muted-foreground">What happened (recap for the log)</Label>
+                <textarea
+                  value={score.outcome_notes ?? ''}
+                  onChange={(e) => updateScore({ outcome_notes: e.target.value || null })}
+                  placeholder="The DM's summary of how the job went..."
+                  className="mt-1 w-full min-h-[60px] resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
               <div className="flex gap-2">
-                <Button className="flex-1 gap-1.5" onClick={() => { wrapScore(); setWrapping(false) }}>
+                <Button
+                  className="flex-1 gap-1.5"
+                  disabled={!score.outcome}
+                  onClick={() => { wrapScore(); setWrapping(false) }}
+                >
                   <Flag className="h-4 w-4" />
-                  Confirm & End Score
+                  {score.outcome ? 'Confirm & End Score' : 'Pick an outcome to end the score'}
                 </Button>
                 <Button variant="ghost" onClick={() => setWrapping(false)}>Cancel</Button>
               </div>
@@ -443,6 +490,59 @@ export function ScorePanel({ isGM }: { isGM: boolean }) {
           </div>
         )
       )}
+    </div>
+  )
+}
+
+function ScoreLog({ scores }: { scores: Score[] }) {
+  return (
+    <div className="mx-auto max-w-2xl space-y-3">
+      <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+        <History className="h-4 w-4" />
+        Score Log
+      </h3>
+      {scores.map((s) => (
+        <Card key={s.id}>
+          <CardContent className="space-y-2 pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="truncate font-semibold">{s.title}</span>
+                {s.outcome && (
+                  <Badge
+                    className={cn(
+                      'text-[10px] uppercase',
+                      s.outcome === 'success'
+                        ? 'bg-green-500/15 text-green-700 dark:text-green-400'
+                        : 'bg-red-500/15 text-red-600 dark:text-red-400',
+                    )}
+                  >
+                    {s.outcome}
+                  </Badge>
+                )}
+              </div>
+              {s.completed_at && (
+                <span className="shrink-0 text-[10px] text-muted-foreground">
+                  {new Date(s.completed_at).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+            {s.target && <p className="text-xs text-muted-foreground">{s.target}</p>}
+            <div className="flex flex-wrap gap-3 text-xs">
+              <span className="flex items-center gap-1">
+                <Coins className="h-3 w-3 text-yellow-600" /> {s.payoff_coin} coin
+              </span>
+              <span className="flex items-center gap-1">
+                <TrendingUp className="h-3 w-3 text-blue-500" /> {s.rep_gained >= 0 ? '+' : ''}{s.rep_gained} rep
+              </span>
+              <span className="flex items-center gap-1">
+                <Flame className="h-3 w-3 text-orange-500" /> {s.heat_gained >= 0 ? '+' : ''}{s.heat_gained} heat
+              </span>
+            </div>
+            {s.outcome_notes && <p className="text-sm">{s.outcome_notes}</p>}
+            {s.notes && <p className="text-xs italic text-muted-foreground">{s.notes}</p>}
+          </CardContent>
+        </Card>
+      ))}
     </div>
   )
 }

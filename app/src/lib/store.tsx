@@ -26,6 +26,7 @@ interface PutPayload {
   clocks?: Clock[]
   factions?: Faction[]
   score?: Score | null
+  completedScore?: Score
   mapImageUrl?: string | null
 }
 interface RemovePayload {
@@ -104,6 +105,7 @@ interface GameState {
   mapTokens: MapToken[]
   mapImageUrl: string | null
   currentScore: Score | null
+  scoreHistory: Score[]
 }
 
 interface GameActions {
@@ -189,6 +191,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
   const [mapTokens, setMapTokens] = useState<MapToken[]>([])
   const [mapImageUrl, setMapImage] = useState<string | null>(null)
   const [currentScore, setCurrentScore] = useState<Score | null>(null)
+  const [scoreHistory, setScoreHistory] = useState<Score[]>([])
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const stateRef = useRef({ characters, crew, clocks, factions, currentScore, mapTokens })
@@ -203,6 +206,10 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
     if (p.clocks) setClocks((prev) => upsertMany(prev, p.clocks!))
     if (p.factions) setFactions((prev) => upsertMany(prev, p.factions!))
     if ('score' in p) setCurrentScore(p.score ?? null)
+    if (p.completedScore) {
+      const done = p.completedScore
+      setScoreHistory((prev) => [done, ...prev.filter((s) => s.id !== done.id)])
+    }
     if ('mapImageUrl' in p) setMapImage(p.mapImageUrl ?? null)
   }, [])
 
@@ -331,10 +338,13 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
       plan_detail: null,
       position: null,
       status: 'planning',
+      outcome: null,
       payoff_coin: 0,
       rep_gained: 0,
       heat_gained: 0,
       notes: null,
+      outcome_notes: null,
+      completed_at: null,
       created_at: new Date().toISOString(),
     }
     const p = { score }
@@ -365,13 +375,18 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
         wanted_level: Math.min(4, crew.wanted_level + Math.floor(totalHeat / 9)),
       }
     }
+    // The wrapped score is kept as completed history, not deleted.
+    const completed: Score | null = score
+      ? { ...score, status: 'completed', completed_at: new Date().toISOString() }
+      : null
     const p: PutPayload = { characters: resetChars, clocks: resetScoreClocks, score: null }
+    if (completed) p.completedScore = completed
     if (newCrew) p.crew = newCrew
     applyPut(p); broadcast('put', p)
     persistChars(resetChars); persistClocks(resetScoreClocks)
     if (newCrew) persistCrew(newCrew)
-    if (score) deleteEntity('scores', score.id).catch(onErr)
-  }, [applyPut, broadcast, persistChars, persistClocks, persistCrew])
+    if (completed) persistScore(completed)
+  }, [applyPut, broadcast, persistChars, persistClocks, persistCrew, persistScore])
 
   const abandonScore = useCallback(() => {
     const score = stateRef.current.currentScore
@@ -396,6 +411,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
         setClocks(data.clocks)
         setFactions(data.factions)
         setCurrentScore(data.currentScore)
+        setScoreHistory(data.scoreHistory)
         setMapTokens(data.mapTokens)
         setActiveCharacter((prev) => prev ?? data.characters[0]?.id ?? null)
         setLoading(false)
@@ -462,7 +478,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
         mapTokens, updateMapToken, addMapToken, removeMapToken, commitMapToken,
         mapImageUrl, setMapImage: setMapImageSynced,
         endScore,
-        currentScore, startScore, updateScore, wrapScore, abandonScore,
+        currentScore, scoreHistory, startScore, updateScore, wrapScore, abandonScore,
       }}
     >
       {children}

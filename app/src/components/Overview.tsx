@@ -47,7 +47,7 @@ function HarmSummary({ character }: { character: Character }) {
     character.harm_level1_b,
   ].filter(Boolean)
 
-  if (harms.length === 0) return <span className="text-xs text-muted-foreground">Unharmed</span>
+  if (harms.length === 0) return null
 
   return (
     <div className="flex flex-wrap gap-1">
@@ -367,11 +367,14 @@ function CharacterCard({
           </div>
         )}
 
-        {/* Harm */}
-        <div className="space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">Harm</span>
-          <HarmSummary character={character} />
-        </div>
+        {/* Harm — only shown when the character is actually harmed */}
+        {(character.harm_level3 || character.harm_level2_a || character.harm_level2_b ||
+          character.harm_level1_a || character.harm_level1_b) && (
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">Harm</span>
+            <HarmSummary character={character} />
+          </div>
+        )}
 
         <Separator />
 

@@ -49,12 +49,19 @@ export async function loadCampaignData(campaignId: string): Promise<CampaignData
     loadTable<Score>('scores', campaignId),
     loadTable<MapToken>('map_tokens', campaignId),
   ])
+  // A campaign has at most one active/planning score; the rest are completed
+  // history, newest first.
+  const currentScore = scores.find((s) => s.status !== 'completed') ?? null
+  const scoreHistory = scores
+    .filter((s) => s.status === 'completed')
+    .sort((a, b) => (b.completed_at ?? b.created_at).localeCompare(a.completed_at ?? a.created_at))
   return {
     characters,
     crew: crews[0] ?? null,
     clocks,
     factions,
-    currentScore: scores[0] ?? null,
+    currentScore,
+    scoreHistory,
     mapTokens,
   }
 }
@@ -93,7 +100,10 @@ async function seedCampaign(campaignId: string): Promise<CampaignData> {
     d.crew ? saveEntities('crews', campaignId, [d.crew]) : Promise.resolve(),
     saveEntities('clocks', campaignId, d.clocks),
     saveEntities('factions', campaignId, d.factions),
-    d.currentScore ? saveEntities('scores', campaignId, [d.currentScore]) : Promise.resolve(),
+    saveEntities('scores', campaignId, [
+      ...(d.currentScore ? [d.currentScore] : []),
+      ...d.scoreHistory,
+    ]),
     saveEntities('map_tokens', campaignId, d.mapTokens),
   ])
   return d

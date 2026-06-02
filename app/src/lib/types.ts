@@ -162,7 +162,8 @@ export const FACTION_STATUS_LABELS: Record<number, string> = {
 }
 
 export type Position = 'controlled' | 'risky' | 'desperate'
-export type ScoreStatus = 'planning' | 'active'
+export type ScoreStatus = 'planning' | 'active' | 'completed'
+export type ScoreOutcome = 'success' | 'failure'
 
 export const POSITION_INFO: Record<Position, { label: string; detail: string }> = {
   controlled: { label: 'Controlled', detail: 'You act on your terms. Minor consequences, you can pull back.' },
@@ -179,10 +180,14 @@ export interface Score {
   plan_detail: string | null
   position: Position | null
   status: ScoreStatus
+  outcome: ScoreOutcome | null
   payoff_coin: number
   rep_gained: number
   heat_gained: number
   notes: string | null
+  // The DM's recap written when the score is wrapped ("what happened").
+  outcome_notes: string | null
+  completed_at: string | null
   created_at: string
 }
 

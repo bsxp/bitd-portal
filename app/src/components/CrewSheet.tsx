@@ -6,7 +6,16 @@ import { XPTracker } from '@/components/trackers/XPTracker'
 import { CoinTracker } from '@/components/trackers/CoinTracker'
 import { ClaimsMap } from '@/components/trackers/ClaimsMap'
 import { InfoLabel } from '@/components/InfoLabel'
-import { CREW_XP_TRIGGERS, CREW_ABILITIES, CREW_CLAIMS, claimKey } from '@/lib/game-data'
+import {
+  CREW_XP_TRIGGERS,
+  CREW_ABILITIES,
+  CREW_CLAIMS,
+  claimKey,
+  COMMON_CREW_UPGRADES,
+  CREW_SPECIFIC_UPGRADES,
+  CREW_UPGRADE_UNLOCKS,
+} from '@/lib/game-data'
+import type { CrewUpgrade } from '@/lib/game-data'
 import { cn } from '@/lib/utils'
 import type { Crew } from '@/lib/types'
 
@@ -47,6 +56,85 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
   function handleHeatClick(index: number) {
     if (readonly) return
     onUpdate({ heat: crew.heat === index + 1 ? index : index + 1 })
+  }
+
+  // Filled boxes for an upgrade = the count of its name in crew.upgrades.
+  function filledBoxes(name: string): number {
+    return crew.upgrades.filter((u) => u === name).length
+  }
+
+  // Clicking the next empty box appends the name; clicking the last filled box
+  // removes one occurrence. boxIndex is 0-based.
+  function handleUpgradeBoxClick(name: string, boxIndex: number, total: number) {
+    if (readonly) return
+    const filled = filledBoxes(name)
+    if (boxIndex < filled) {
+      // Removing — only allow removing the last filled box.
+      if (boxIndex !== filled - 1) return
+      const next = [...crew.upgrades]
+      next.splice(next.lastIndexOf(name), 1)
+      onUpdate({ upgrades: next })
+    } else {
+      // Adding — only allow filling the next empty box (and not past the max).
+      if (boxIndex !== filled || filled >= total) return
+      onUpdate({ upgrades: [...crew.upgrades, name] })
+    }
+  }
+
+  function renderUpgrade(upgrade: CrewUpgrade) {
+    const filled = filledBoxes(upgrade.name)
+    const hasSecond = upgrade.boxes === 2 && filled >= 2
+    return (
+      <div
+        key={upgrade.name}
+        className={cn(
+          'rounded-md border px-3 py-2 transition-colors',
+          filled > 0 ? 'border-primary/40 bg-primary/5' : 'border-transparent bg-muted/30',
+        )}
+      >
+        <div className="flex items-start gap-2">
+          <div className="mt-0.5 flex shrink-0 gap-1">
+            {Array.from({ length: upgrade.boxes }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => handleUpgradeBoxClick(upgrade.name, i, upgrade.boxes)}
+                disabled={readonly}
+                className={cn(
+                  'h-4 w-4 rounded-sm border-2 transition-colors',
+                  i < filled
+                    ? 'border-primary bg-primary'
+                    : 'border-muted-foreground/40 bg-transparent',
+                  !readonly && 'cursor-pointer hover:border-primary/60',
+                )}
+              />
+            ))}
+          </div>
+          <div className="min-w-0">
+            <span
+              className={cn(
+                'text-sm font-semibold',
+                filled > 0 ? 'text-foreground' : 'text-muted-foreground',
+              )}
+            >
+              {upgrade.name}
+            </span>
+            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+              {upgrade.description}
+            </p>
+            {upgrade.secondBenefit && (
+              <p
+                className={cn(
+                  'mt-1 text-xs leading-relaxed',
+                  hasSecond ? 'font-medium text-primary' : 'italic text-muted-foreground/70',
+                )}
+              >
+                2nd box: {upgrade.secondBenefit}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -376,6 +464,65 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
             placeholder="Crew notes, plans, contacts..."
             className="w-full min-h-[80px] rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
           />
+        </CardContent>
+      </Card>
+
+      {/* Crew Upgrades */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Crew Upgrades</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {COMMON_CREW_UPGRADES.map((group) => {
+            const unlockDef = CREW_UPGRADE_UNLOCKS[group.group]
+            const unlockGranted =
+              unlockDef !== undefined &&
+              unlockDef.prerequisites.every((name) => filledBoxes(name) >= 1)
+            return (
+              <div key={group.group}>
+                <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {group.group}
+                </h4>
+                <div className="grid gap-1.5 sm:grid-cols-2">
+                  {group.upgrades.map(renderUpgrade)}
+                </div>
+                {unlockDef && (
+                  <div
+                    className={cn(
+                      'mt-1.5 rounded-md border px-3 py-2',
+                      unlockGranted
+                        ? 'border-primary/40 bg-primary/5'
+                        : 'border-dashed border-muted-foreground/30 bg-muted/20',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'text-sm font-semibold',
+                        unlockGranted ? 'text-primary' : 'text-muted-foreground',
+                      )}
+                    >
+                      {unlockDef.unlock}
+                      {unlockGranted ? ' — granted' : ' (fill all 4 boxes to unlock)'}
+                    </span>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                      {unlockDef.description}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {crew.crew_type && (
+            <div>
+              <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="capitalize">{crew.crew_type}</span> Upgrades
+              </h4>
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                {CREW_SPECIFIC_UPGRADES[crew.crew_type].map(renderUpgrade)}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

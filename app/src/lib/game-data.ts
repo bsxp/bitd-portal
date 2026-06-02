@@ -588,3 +588,116 @@ export const CREW_CLAIMS: Record<CrewType, ClaimDefinition[][]> = {
     ],
   ],
 }
+
+// ── Crew Upgrades ──
+// Filled boxes are modeled as repeated entries in Crew.upgrades: the number of
+// boxes filled for an upgrade = the count of its `name` in the array. A 2-box
+// upgrade's 2nd box grants `secondBenefit`. A 4-box upgrade (Training group)
+// grants its `unlock` (e.g. Mastery) — that unlock is DERIVED, not stored.
+export interface CrewUpgrade {
+  name: string
+  boxes: 1 | 2 | 4
+  description: string
+  // The additional benefit gained when the 2nd box of a 2-box upgrade is filled.
+  secondBenefit?: string
+  // The linked ability granted once all 4 boxes of a 4-box group are filled.
+  unlock?: string
+}
+
+export const COMMON_CREW_UPGRADES: { group: string; upgrades: CrewUpgrade[] }[] = [
+  {
+    group: 'Lair',
+    upgrades: [
+      { name: 'Carriage', boxes: 2, description: 'You have a carriage, two goats to pull it, and a stable. (Most carriages in Doskvol use the large Akorosian goat as their draft animal.)', secondBenefit: 'A second box improves the carriage with armor and larger, swifter goats.' },
+      { name: 'Boat', boxes: 2, description: 'You have a boat, a dock on a waterway, and a small shack to store boating supplies.', secondBenefit: 'A second box improves the boat with armor and more cargo capacity.' },
+      { name: 'Hidden', boxes: 1, description: 'Your lair has a secret location and is disguised to hide it from view. If your lair is discovered, use downtime activities and pay coin equal to your Tier to relocate it and hide it once again.' },
+      { name: 'Quarters', boxes: 1, description: 'Your lair includes living quarters for the crew. Without this upgrade, each PC sleeps elsewhere, and is vulnerable when they do so.' },
+      { name: 'Secure', boxes: 2, description: 'Your lair has locks, alarms, and traps to thwart intruders.', secondBenefit: 'A second box improves the defenses to include arcane measures that work against spirits. You might roll your crew\'s Tier if these measures are ever put to the test.' },
+      { name: 'Vault', boxes: 2, description: 'Your lair has a secure vault, increasing your storage capacity for coin to 8.', secondBenefit: 'A second box increases your capacity to 16. A separate part of your vault can be used as a holding cell.' },
+      { name: 'Workshop', boxes: 1, description: 'Your lair has a workshop appointed with tools for tinkering and alchemy, as well as a small library of books, documents, and maps. You may accomplish long-term projects with these assets without leaving your lair.' },
+    ],
+  },
+  {
+    group: 'Quality',
+    upgrades: [
+      { name: 'Documents', boxes: 1, description: 'Improves the quality rating of all the PCs\' documents, beyond the quality established by the crew\'s Tier and fine items.' },
+      { name: 'Gear', boxes: 1, description: 'Improves the quality rating of all the PCs\' gear (covers Burglary Gear and Climbing Gear), beyond Tier and fine items.' },
+      { name: 'Implements', boxes: 1, description: 'Improves the quality rating of all the PCs\' arcane implements, beyond Tier and fine items.' },
+      { name: 'Supplies', boxes: 1, description: 'Improves the quality rating of all the PCs\' subterfuge supplies, beyond Tier and fine items.' },
+      { name: 'Tools', boxes: 1, description: 'Improves the quality rating of all the PCs\' tools (covers Demolitions Tools and Tinkering Tools), beyond Tier and fine items.' },
+      { name: 'Weapons', boxes: 1, description: 'Improves the quality rating of all the PCs\' weapons, beyond Tier and fine items.' },
+    ],
+  },
+  {
+    group: 'Training',
+    upgrades: [
+      { name: 'Insight', boxes: 1, description: 'When you train Insight during downtime, you mark 2 xp (instead of 1) on the Insight track.', unlock: 'Mastery' },
+      { name: 'Prowess', boxes: 1, description: 'When you train Prowess during downtime, you mark 2 xp (instead of 1) on the Prowess track.', unlock: 'Mastery' },
+      { name: 'Resolve', boxes: 1, description: 'When you train Resolve during downtime, you mark 2 xp (instead of 1) on the Resolve track.', unlock: 'Mastery' },
+      { name: 'Personal', boxes: 1, description: 'When you train your playbook during downtime, you mark 2 xp (instead of 1) on your playbook xp track.', unlock: 'Mastery' },
+    ],
+  },
+  {
+    group: 'Cohorts',
+    upgrades: [
+      { name: 'Gang', boxes: 1, description: 'A cohort is a gang or a single expert NPC who works for your crew. This adds a Gang cohort (Adepts, Rooks, Rovers, Skulks, or Thugs). Recruiting a new cohort costs two upgrade boxes.' },
+      { name: 'Expert', boxes: 1, description: 'A cohort is a gang or a single expert NPC who works for your crew. This adds an Expert cohort (a Doctor, Spy, Occultist, Assassin, etc.). Recruiting a new cohort costs two upgrade boxes.' },
+    ],
+  },
+]
+
+// The derived unlock granted by the Training group: filling all 4 of these
+// boxes grants Mastery. Keyed by group name → { unlock, description, prerequisites }.
+export const CREW_UPGRADE_UNLOCKS: Record<string, { unlock: string; description: string; prerequisites: string[] }> = {
+  Training: {
+    unlock: 'Mastery',
+    description: 'Your crew has access to master level training. You may advance your PCs\' action ratings to 4 (until you unlock this upgrade, PC action ratings are capped at 3). This costs four upgrade boxes to unlock.',
+    prerequisites: ['Insight', 'Prowess', 'Resolve', 'Personal'],
+  },
+}
+
+export const CREW_SPECIFIC_UPGRADES: Record<CrewType, CrewUpgrade[]> = {
+  assassins: [
+    { name: 'Assassin Rigging', boxes: 1, description: 'You get 2 free load worth of weapon or gear items. For example, you could carry a pistol (a weapon) and burglary tools (gear) for zero load.' },
+    { name: 'Ironhook Contacts', boxes: 1, description: 'Your Tier is effectively +1 higher in prison. This counts for any Tier-related element in prison, including the incarceration roll.' },
+    { name: 'Elite Skulks', boxes: 1, description: 'All of your cohorts with the Skulks type get +1d to quality rolls for Skulk-related actions.' },
+    { name: 'Elite Thugs', boxes: 1, description: 'All of your cohorts with the Thugs type get +1d to quality rolls for Thug-related actions.' },
+    { name: 'Hardened', boxes: 1, description: 'Each PC gets +1 trauma box. This costs three upgrades to unlock, not just one. This may bring a PC with 4 trauma back into play if you wish.' },
+  ],
+  bravos: [
+    { name: 'Bravos Rigging', boxes: 1, description: 'You get 2 free load worth of weapon or armor items. For example, you could carry a sword & pistol or wear normal armor for zero load.' },
+    { name: 'Ironhook Contacts', boxes: 1, description: 'Your Tier is effectively +1 higher in prison. This counts for any Tier-related element in prison, including the incarceration roll.' },
+    { name: 'Elite Rovers', boxes: 1, description: 'All of your cohorts with the Rovers type get +1d to quality rolls for Rover-related actions.' },
+    { name: 'Elite Thugs', boxes: 1, description: 'All of your cohorts with the Thugs type get +1d to quality rolls for Thug-related actions.' },
+    { name: 'Hardened', boxes: 1, description: 'Each PC gets +1 trauma box. This costs three upgrades to unlock, not just one. This may bring a PC with 4 trauma back into play if you wish.' },
+  ],
+  cult: [
+    { name: 'Cult Rigging', boxes: 1, description: 'You get 2 free load worth of document or implement items. For example, you could carry a profane book of curses and a demon\'s hand for zero load.' },
+    { name: 'Ritual Sanctum in Lair', boxes: 1, description: 'This counts as a sacred and arcane workshop for occult practices and rituals.' },
+    { name: 'Elite Adepts', boxes: 1, description: 'All of your cohorts with the Adepts type get +1d to quality rolls for Adept-related actions.' },
+    { name: 'Elite Thugs', boxes: 1, description: 'All of your cohorts with the Thugs type get +1d to quality rolls for Thug-related actions.' },
+    { name: 'Ordained', boxes: 1, description: 'Each PC gets +1 trauma box. This costs three upgrades to unlock, not just one. This may bring a PC with 4 trauma back into play if you wish.' },
+  ],
+  hawkers: [
+    { name: 'Hawker Rigging', boxes: 1, description: 'One carried item is concealed and has no load. For example, you could carry a load of drugs or a weapon, perfectly concealed, for zero load.' },
+    { name: 'Ironhook Contacts', boxes: 1, description: 'Your Tier is effectively +1 higher in prison. This counts for any Tier-related element in prison, including the incarceration roll.' },
+    { name: 'Elite Rooks', boxes: 1, description: 'All of your cohorts with the Rooks type get +1d to quality rolls for Rook-related actions.' },
+    { name: 'Elite Thugs', boxes: 1, description: 'All of your cohorts with the Thugs type get +1d to quality rolls for Thug-related actions.' },
+    { name: 'Composed', boxes: 1, description: 'Each PC gets +1 stress box. This costs three upgrades to unlock, not just one.' },
+  ],
+  shadows: [
+    { name: 'Thief Rigging', boxes: 1, description: 'You get 2 free load worth of tool or gear items. For example, you could carry burglary gear and tinkering tools for zero load.' },
+    { name: 'Underground Maps and Passkeys', boxes: 1, description: 'You have easy passage through the underground canals, tunnels, and basements of the city.' },
+    { name: 'Elite Rooks', boxes: 1, description: 'All of your cohorts with the Rooks type get +1d to quality rolls for Rook-related actions.' },
+    { name: 'Elite Skulks', boxes: 1, description: 'All of your cohorts with the Skulks type get +1d to quality rolls for Skulk-related actions.' },
+    { name: 'Steady', boxes: 1, description: 'Each PC gets +1 stress box. This costs three upgrades to unlock, not just one.' },
+  ],
+  smugglers: [
+    { name: 'Smuggler Rigging', boxes: 1, description: 'Two of your carried items are perfectly concealed. You could carry 1 load of contraband and a pistol, perfectly concealed, even against a pat down.' },
+    { name: 'Camouflage', boxes: 1, description: 'Your vehicles are perfectly concealed when at rest. They blend in as part of the environment, or as an uninteresting civilian vehicle (your choice).' },
+    { name: 'Elite Rovers', boxes: 1, description: 'All of your cohorts with the Rovers type get +1d to quality rolls for Rover-related actions.' },
+    { name: 'Barge', boxes: 1, description: 'Add mobility to your lair. You can move it to a new location as a downtime activity.' },
+    { name: 'Steady', boxes: 1, description: 'Each PC gets +1 stress box. This costs three upgrades to unlock, not just one.' },
+    { name: 'Vehicle', boxes: 2, description: 'All smugglers start with a vehicle (a boat or carriage).', secondBenefit: 'When the vehicle is upgraded (the second box), it also gets armor.' },
+  ],
+}

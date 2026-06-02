@@ -409,6 +409,45 @@ export interface ClaimDefinition {
   description: string
 }
 
+// The claims grid is 3 rows x 5 columns. Each claim is keyed by its position
+// as `${row},${col}` (rows 0-2, cols 0-4) — position-based because several
+// cells share the name "Turf". The center cell (1,2) is the crew's Lair.
+export const CLAIMS_ROWS = 3
+export const CLAIMS_COLS = 5
+export const CLAIM_LAIR_ROW = 1
+export const CLAIM_LAIR_COL = 2
+
+export function claimKey(r: number, c: number): string {
+  return `${r},${c}`
+}
+
+export function isLairCell(r: number, c: number): boolean {
+  return r === CLAIM_LAIR_ROW && c === CLAIM_LAIR_COL
+}
+
+// Orthogonal (up/down/left/right) neighbors of a cell within the 3x5 grid.
+export function claimNeighbors(r: number, c: number): Array<[number, number]> {
+  const deltas: Array<[number, number]> = [[-1, 0], [1, 0], [0, -1], [0, 1]]
+  const result: Array<[number, number]> = []
+  for (const [dr, dc] of deltas) {
+    const nr = r + dr
+    const nc = c + dc
+    if (nr >= 0 && nr < CLAIMS_ROWS && nc >= 0 && nc < CLAIMS_COLS) {
+      result.push([nr, nc])
+    }
+  }
+  return result
+}
+
+// A claim may be seized only if it is adjacent to an already-seized claim or
+// the Lair. The Lair itself is always considered held.
+export function canSeizeClaim(r: number, c: number, claimsSeized: string[]): boolean {
+  if (isLairCell(r, c)) return true
+  return claimNeighbors(r, c).some(
+    ([nr, nc]) => isLairCell(nr, nc) || claimsSeized.includes(claimKey(nr, nc)),
+  )
+}
+
 export const CREW_CLAIMS: Record<CrewType, ClaimDefinition[][]> = {
   assassins: [
     [

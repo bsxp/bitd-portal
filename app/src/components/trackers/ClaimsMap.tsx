@@ -1,5 +1,5 @@
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
-import { CREW_CLAIMS } from '@/lib/game-data'
+import { CREW_CLAIMS, claimKey, isLairCell, canSeizeClaim } from '@/lib/game-data'
 import { cn } from '@/lib/utils'
 import type { CrewType } from '@/lib/types'
 
@@ -14,9 +14,8 @@ export function ClaimsMap({ crewType, claimsSeized, onToggleClaim, readonly }: C
   const claims = CREW_CLAIMS[crewType]
   if (!claims) return null
 
-  const isLair = (r: number, c: number) => r === 1 && c === 2
-  const isClaimed = (r: number, c: number) => claimsSeized.includes(`${r},${c}`)
-  const claimKey = (r: number, c: number) => `${r},${c}`
+  const isLair = (r: number, c: number) => isLairCell(r, c)
+  const isClaimed = (r: number, c: number) => claimsSeized.includes(claimKey(r, c))
 
   const turfCount = claims.flatMap((row, r) =>
     row.map((claim, c) => ({ claim, r, c }))
@@ -34,21 +33,28 @@ export function ClaimsMap({ crewType, claimsSeized, onToggleClaim, readonly }: C
         const c = gridCol / 2
         const claim = claims[r][c]
         const lair = isLair(r, c)
-        const claimed = lair || isClaimed(r, c)
+        const seized = isClaimed(r, c)
+        const claimed = lair || seized
+        // A not-yet-seized claim must border the Lair or a seized claim to be
+        // seizable. Already-seized claims may still be toggled off.
+        const seizable = seized || canSeizeClaim(r, c, claimsSeized)
+        const interactive = !readonly && !lair && (seized || seizable)
 
         elements.push(
           <Tooltip key={`cell-${r}-${c}`}>
             <TooltipTrigger
               onClick={() => {
-                if (readonly || lair) return
+                if (readonly || lair || !interactive) return
                 onToggleClaim(claimKey(r, c))
               }}
+              disabled={!interactive}
               className={cn(
                 'flex min-h-14 items-center justify-center rounded-md border-2 px-2 py-1.5 text-center text-[11px] font-bold uppercase leading-tight tracking-wide transition-all',
                 lair && 'border-primary bg-primary text-primary-foreground shadow-md',
                 !lair && claimed && 'border-emerald-500 bg-emerald-500/15 text-emerald-700 shadow-sm dark:text-emerald-400',
-                !lair && !claimed && 'border-muted-foreground/25 text-muted-foreground/60',
-                !readonly && !lair && 'cursor-pointer hover:border-primary/50 hover:shadow-sm',
+                !lair && !claimed && seizable && 'border-muted-foreground/25 text-muted-foreground/60',
+                !lair && !claimed && !seizable && 'border-dashed border-muted-foreground/15 text-muted-foreground/30 opacity-50',
+                interactive && 'cursor-pointer hover:border-primary/50 hover:shadow-sm',
               )}
               style={{
                 gridRow: gridRow + 1,

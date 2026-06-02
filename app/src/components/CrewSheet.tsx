@@ -6,9 +6,11 @@ import { XPTracker } from '@/components/trackers/XPTracker'
 import { CoinTracker } from '@/components/trackers/CoinTracker'
 import { ClaimsMap } from '@/components/trackers/ClaimsMap'
 import { InfoLabel } from '@/components/InfoLabel'
-import { CREW_XP_TRIGGERS, CREW_ABILITIES } from '@/lib/game-data'
+import { CREW_XP_TRIGGERS, CREW_ABILITIES, CREW_CLAIMS, claimKey } from '@/lib/game-data'
 import { cn } from '@/lib/utils'
 import type { Crew } from '@/lib/types'
+
+const MAX_REP = 12
 
 interface CrewSheetProps {
   crew: Crew
@@ -17,6 +19,26 @@ interface CrewSheetProps {
 }
 
 export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
+  // Count seized claims named exactly "Turf". Each turf reduces the rep needed
+  // to advance tier by one.
+  const turfCount = crew.crew_type
+    ? CREW_CLAIMS[crew.crew_type].reduce(
+        (acc, row, r) =>
+          acc +
+          row.filter(
+            (claim, c) => claim.name === 'Turf' && crew.claims_seized.includes(claimKey(r, c)),
+          ).length,
+        0,
+      )
+    : 0
+  const repNeeded = MAX_REP - turfCount
+  const canAdvanceTier = crew.rep >= repNeeded && crew.tier < 5
+
+  function handleUpgradeTier() {
+    if (readonly || !canAdvanceTier) return
+    onUpdate({ tier: Math.min(5, crew.tier + 1), rep: 0 })
+  }
+
   function handleRepClick(index: number) {
     if (readonly) return
     onUpdate({ rep: crew.rep === index + 1 ? index : index + 1 })
@@ -152,7 +174,7 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
                         !readonly && 'cursor-pointer hover:border-primary/50',
                       )}
                     >
-                      {['0', 'I', 'II', 'III', 'IV'][i]}
+                      {['I', 'II', 'III', 'IV', 'V'][i]}
                     </button>
                   ))}
                 </div>
@@ -186,28 +208,55 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
             {/* Rep */}
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <InfoLabel label="Rep" tip="Earn from successful scores. At 12, spend to advance your Tier." />
-                <span className="text-sm text-muted-foreground">{crew.rep}/12</span>
+                <InfoLabel label="Rep" tip="Earn from successful scores. When the track is full, spend to advance your Tier. Each Turf held reduces the rep needed by one (shown green)." />
+                <span className="text-sm text-muted-foreground">
+                  {crew.rep}/{repNeeded}
+                  {turfCount > 0 && <span className="text-emerald-600 dark:text-emerald-400"> ({turfCount} turf)</span>}
+                </span>
               </div>
               <div className="flex flex-wrap gap-0.5">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleRepClick(i)}
-                    disabled={readonly}
-                    className={cn(
-                      'h-5 w-5 rounded-sm border transition-colors',
-                      i < crew.rep
-                        ? 'border-blue-500 bg-blue-500'
-                        : 'border-muted-foreground/30 bg-transparent',
-                      !readonly && 'cursor-pointer hover:border-blue-400',
-                    )}
-                  />
-                ))}
+                {Array.from({ length: MAX_REP }).map((_, i) => {
+                  // The last `turfCount` boxes are discounted by held turf — shown
+                  // green to indicate they don't need filling to advance.
+                  const isTurfBox = i >= MAX_REP - turfCount
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleRepClick(i)}
+                      disabled={readonly}
+                      className={cn(
+                        'h-5 w-5 rounded-sm border transition-colors',
+                        i < crew.rep
+                          ? 'border-blue-500 bg-blue-500'
+                          : isTurfBox
+                            ? 'border-emerald-500 bg-emerald-500/20'
+                            : 'border-muted-foreground/30 bg-transparent',
+                        !readonly && 'cursor-pointer hover:border-blue-400',
+                      )}
+                    />
+                  )
+                })}
               </div>
-              {crew.rep >= 12 && (
-                <p className="text-xs font-bold text-primary">Ready to advance Tier!</p>
-              )}
+              <div className="flex items-center justify-between gap-2 pt-1">
+                {crew.rep >= repNeeded ? (
+                  <p className="text-xs font-bold text-primary">Ready to advance Tier!</p>
+                ) : (
+                  <span />
+                )}
+                <button
+                  onClick={handleUpgradeTier}
+                  disabled={readonly || !canAdvanceTier}
+                  className={cn(
+                    'rounded-md border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors',
+                    canAdvanceTier
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-muted-foreground/30 text-muted-foreground/50',
+                    !readonly && canAdvanceTier && 'cursor-pointer hover:bg-primary/90',
+                  )}
+                >
+                  Upgrade Tier
+                </button>
+              </div>
             </div>
 
             <Separator />

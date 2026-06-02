@@ -6,6 +6,7 @@ import { InfoLabel } from '@/components/InfoLabel'
 interface StressTrackerProps {
   stress: number
   trauma: string[]
+  maxStress?: number
   onStressChange: (value: number) => void
   onTraumaOut?: (trauma: string) => void
   onTraumaChange?: (trauma: string[]) => void
@@ -14,8 +15,7 @@ interface StressTrackerProps {
 
 const MAX_TRAUMA = 4
 
-export function StressTracker({ stress, trauma, onStressChange, onTraumaOut, onTraumaChange, readonly }: StressTrackerProps) {
-  const maxStress = 9
+export function StressTracker({ stress, trauma, maxStress = 9, onStressChange, onTraumaOut, onTraumaChange, readonly }: StressTrackerProps) {
   const [showPicker, setShowPicker] = useState(false)
   const availableTraumas = TRAUMA_OPTIONS.filter((t) => !trauma.includes(t))
 

@@ -46,6 +46,7 @@ function makeCharacter(campaignId: string, overrides: Partial<Character>): Chara
     load_level: null,
     items_carried: [],
     special_abilities: [],
+    ability_details: {},
     contacts: [],
     notes: null,
     created_at: new Date().toISOString(),

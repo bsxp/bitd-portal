@@ -20,11 +20,19 @@ import { LoadTracker } from '@/components/trackers/LoadTracker'
 import { CoinTracker } from '@/components/trackers/CoinTracker'
 import { ArmorTracker } from '@/components/trackers/ArmorTracker'
 import { ContactsList } from '@/components/trackers/ContactsList'
-import { PLAYBOOK_XP_TRIGGERS, PLAYBOOK_ABILITIES } from '@/lib/game-data'
+import { PLAYBOOK_XP_TRIGGERS, PLAYBOOK_ABILITIES, ABILITY_INPUTS, SPECIAL_ARMOR_ABILITIES, PLAYBOOK_MAX_STRESS } from '@/lib/game-data'
 import { HERITAGE_OPTIONS, BACKGROUND_OPTIONS, VICE_OPTIONS } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { ChevronDown, User } from 'lucide-react'
 import type { Character, CharacterContact, ActionName, LoadLevel } from '@/lib/types'
+
+// Special armor is granted by abilities: true if any selected ability grants it,
+// including a Veteran pick that itself grants special armor.
+function derivesSpecialArmor(abilities: string[], details: Record<string, string>): boolean {
+  if (abilities.some((a) => SPECIAL_ARMOR_ABILITIES.has(a))) return true
+  if (abilities.includes('Veteran') && SPECIAL_ARMOR_ABILITIES.has(details['Veteran:pick'] ?? '')) return true
+  return false
+}
 
 interface CharacterSheetProps {
   character: Character
@@ -194,6 +202,7 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
               <StressTracker
                 stress={character.stress}
                 trauma={character.trauma}
+                maxStress={character.playbook ? PLAYBOOK_MAX_STRESS[character.playbook] : 9}
                 onStressChange={(stress) => onUpdate({ stress })}
                 onTraumaOut={(newTrauma) => onUpdate({
                   stress: 0,
@@ -284,43 +293,90 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
             <div className="grid gap-1 sm:grid-cols-2">
               {abilities.map((ability) => {
                 const selected = character.special_abilities.includes(ability.name)
+                const details = character.ability_details ?? {}
+                const inputs = selected ? ABILITY_INPUTS[ability.name] : undefined
                 return (
-                  <button
+                  <div
                     key={ability.name}
-                    onClick={() => {
-                      if (readonly) return
-                      const next = selected
-                        ? character.special_abilities.filter(a => a !== ability.name)
-                        : [...character.special_abilities, ability.name]
-                      onUpdate({ special_abilities: next })
-                    }}
-                    disabled={readonly}
                     className={cn(
-                      'group flex gap-2 rounded-md border px-3 py-2 text-left transition-colors',
-                      selected
-                        ? 'border-primary/40 bg-primary/5'
-                        : 'border-transparent bg-muted/30 opacity-50',
-                      !readonly && 'cursor-pointer hover:border-primary/30 hover:opacity-100',
+                      'rounded-md border transition-colors',
+                      selected ? 'border-primary/40 bg-primary/5' : 'border-transparent bg-muted/30',
                     )}
                   >
-                    <div className={cn(
-                      'mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border-2 transition-colors',
-                      selected
-                        ? 'border-primary bg-primary'
-                        : 'border-muted-foreground/40',
-                    )} />
-                    <div className="min-w-0">
-                      <span className={cn(
-                        'text-sm font-semibold',
-                        selected ? 'text-foreground' : 'text-muted-foreground',
-                      )}>
-                        {ability.name}
-                      </span>
-                      <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                        {ability.description}
-                      </p>
-                    </div>
-                  </button>
+                    <button
+                      onClick={() => {
+                        if (readonly) return
+                        const next = selected
+                          ? character.special_abilities.filter(a => a !== ability.name)
+                          : [...character.special_abilities, ability.name]
+                        onUpdate({
+                          special_abilities: next,
+                          special_armor_available: derivesSpecialArmor(next, details),
+                        })
+                      }}
+                      disabled={readonly}
+                      className={cn(
+                        'group flex w-full gap-2 px-3 py-2 text-left transition-opacity',
+                        !selected && 'opacity-50',
+                        !readonly && 'cursor-pointer hover:opacity-100',
+                      )}
+                    >
+                      <div className={cn(
+                        'mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border-2 transition-colors',
+                        selected
+                          ? 'border-primary bg-primary'
+                          : 'border-muted-foreground/40',
+                      )} />
+                      <div className="min-w-0">
+                        <span className={cn(
+                          'text-sm font-semibold',
+                          selected ? 'text-foreground' : 'text-muted-foreground',
+                        )}>
+                          {ability.name}
+                        </span>
+                        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                          {ability.description}
+                        </p>
+                      </div>
+                    </button>
+                    {inputs && (
+                      <div className="space-y-2 border-t border-primary/20 px-3 py-2">
+                        {inputs.map((field) => {
+                          const dkey = `${ability.name}:${field.key}`
+                          const listId = `${ability.name}-${field.key}`.replace(/[^a-zA-Z0-9]+/g, '-')
+                          return (
+                            <div key={field.key} className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">{field.label}</Label>
+                              <Input
+                                value={details[dkey] ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value
+                                  const nextDetails = { ...details }
+                                  if (value) nextDetails[dkey] = value
+                                  else delete nextDetails[dkey]
+                                  onUpdate({
+                                    ability_details: nextDetails,
+                                    ...(ability.name === 'Veteran'
+                                      ? { special_armor_available: derivesSpecialArmor(character.special_abilities, nextDetails) }
+                                      : {}),
+                                  })
+                                }}
+                                list={field.options ? listId : undefined}
+                                placeholder={field.placeholder}
+                                readOnly={readonly}
+                                className="h-8 text-sm"
+                              />
+                              {field.options && (
+                                <datalist id={listId}>
+                                  {field.options.map((opt) => <option key={opt} value={opt} />)}
+                                </datalist>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>

@@ -1,4 +1,5 @@
 import type { Playbook, CrewType, Hold } from './types'
+import { ACTION_RATINGS } from './types'
 
 export interface CanonicalFaction {
   name: string
@@ -75,8 +76,8 @@ export const PLAYBOOK_ABILITIES: Record<Playbook, SpecialAbility[]> = {
   hound: [
     { name: 'Sharpshooter', description: 'You can push yourself to do one of the following: make a ranged attack at extreme distance beyond what\'s normal for the weapon — unleash a barrage of rapid fire to suppress the enemy.' },
     { name: 'Focused', description: 'You may expend your special armor to resist a consequence of surprise or mental harm (fear, confusion, losing track of someone) or to push yourself for ranged combat or tracking.' },
-    { name: 'Ghost Hunter', description: 'Your hunting pet is imbued with spirit energy. It gains potency when tracking or fighting the supernatural, and gains an arcane ability: ghost-Loss form, ## ## spirit-Loss sight, or another.' },
-    { name: 'Scout', description: 'When you gather info to discover the location of a target, you get +1 effect. When you hide in a+1 prepared position or use camouflage, you get +1d to rolls to avoid detection.' },
+    { name: 'Ghost Hunter', description: 'Your hunting pet is imbued with spirit energy. It gains potency when tracking or fighting the supernatural, and gains an arcane ability: ghost form, spirit sight, or another.' },
+    { name: 'Scout', description: 'When you gather info to discover the location of a target, you get +1 effect. When you hide in a prepared position or use camouflage, you get +1d to rolls to avoid detection.' },
     { name: 'Survivor', description: 'From physical training and target practice, you recover from harm faster. Permanently fill in one of your healing clock segments. Take +1d to healing treatment rolls.' },
     { name: 'Tough as Nails', description: 'Penalties from harm are one level less severe (though level 4 harm is still fatal).' },
     { name: 'Vengeful', description: 'You gain an additional xp trigger: You got payback against someone who harmed you or someone you care about. If your crew helped you get payback, also mark crew xp.' },
@@ -119,8 +120,8 @@ export const PLAYBOOK_ABILITIES: Record<Playbook, SpecialAbility[]> = {
     { name: 'Foresight', description: 'Two free load of items per score. After the engagement roll, you may spend 1 stress to flash back for free.' },
     { name: 'Calculating', description: 'Due to your careful planning, during downtime, you may give yourself or a crew member +1 downtime activity.' },
     { name: 'Connected', description: 'During downtime, you get +1 result level when you acquire an asset or reduce heat.' },
-    { name: 'Ghost Contract', description: 'When you shake on a deal, you and your partner — Loss Loss Loss in it are bound to honor the agreement or suffer level 3 harm, "Cursed."' },
-    { name: 'Jail Bird', description: 'When incarcerated, your wanted level counts as 1 less, your ## Tier as 1 more, and you gain +1 faction status with a pointed group while you are in prison.' },
+    { name: 'Ghost Contract', description: 'When you shake on a deal, you and your partner in it are bound to honor the agreement or suffer level 3 harm, "Cursed."' },
+    { name: 'Jail Bird', description: 'When incarcerated, your wanted level counts as 1 less, your Tier as 1 more, and you gain +1 faction status with a chosen group while you are in prison.' },
     { name: 'Mastermind', description: 'You may expend your special armor to protect a teammate, or to push yourself when you gather information or work on a long-term project.' },
     { name: 'Weaving the Web', description: 'You gain +1d to Consort when you gather information on a target for a score. You get +1d to the engagement roll for that operation.' },
     { name: 'Veteran', description: 'Choose a special ability from another source.' },
@@ -132,10 +133,86 @@ export const PLAYBOOK_ABILITIES: Record<Playbook, SpecialAbility[]> = {
     { name: 'Occultist', description: 'You know the secret ways to Consort with ancient powers, forgotten gods or demons. Once you\'ve consorted with one, you get +1d to command cultists who worship it.' },
     { name: 'Ritual', description: 'You can Study an occult ritual (or create a new one) to summon a supernatural effect or being. You know the arcane methods to perform ritual sorcery. You begin with one ritual already learned.' },
     { name: 'Strange Methods', description: 'When you invent or craft a creation with arcane features, take +1 result level to your roll. You begin with one arcane design already known.' },
-    { name: 'Tempest', description: 'You can push yourself to do one of the following: unleash a stroke of lightning as a weapon — Loss summon a storm in your immediate vicinity (torrential rain, roaring winds, heavy fog, chilling frost/snow, etc.).' },
+    { name: 'Tempest', description: 'You can push yourself to do one of the following: unleash a stroke of lightning as a weapon, or summon a storm in your immediate vicinity (torrential rain, roaring winds, heavy fog, chilling frost/snow, etc.).' },
     { name: 'Warded', description: 'You may expend your special armor to resist a supernatural consequence, or to push yourself when you deal with arcane forces.' },
     { name: 'Veteran', description: 'Choose a special ability from another source.' },
   ],
+}
+
+// ── Abilities that require extra player input when selected ──
+// Captured into Character.ability_details under `${abilityName}:${field.key}`.
+// `options` are suggestions only — every field also accepts free text.
+export type AbilityInputKind = 'select' | 'text'
+
+export interface AbilityInputField {
+  key: string
+  kind: AbilityInputKind
+  label: string
+  placeholder?: string
+  options?: string[]
+}
+
+// Every ability name except Veteran — the pool Veteran can pull from.
+const VETERAN_OPTIONS = Array.from(
+  new Set(Object.values(PLAYBOOK_ABILITIES).flat().map((a) => a.name)),
+)
+  .filter((name) => name !== 'Veteran')
+  .sort()
+
+const ACTION_OPTIONS = Object.values(ACTION_RATINGS)
+  .flat()
+  .map((a) => a.charAt(0).toUpperCase() + a.slice(1))
+
+export const ABILITY_INPUTS: Record<string, AbilityInputField[]> = {
+  Veteran: [
+    { key: 'pick', kind: 'select', label: 'Ability from another playbook', placeholder: 'Choose or type an ability…', options: VETERAN_OPTIONS },
+  ],
+  'Ghost Hunter': [
+    { key: 'pet', kind: 'text', label: 'Your hunting pet', placeholder: 'Describe your pet (species, name, look)…' },
+    { key: 'arcane', kind: 'select', label: "Pet's arcane ability", placeholder: 'Choose or type…', options: ['Ghost form', 'Spirit sight', 'Ghost touch', 'Ghostly howl', 'Possession'] },
+  ],
+  Expertise: [
+    { key: 'action', kind: 'select', label: 'Action rating', placeholder: 'Choose an action…', options: ACTION_OPTIONS },
+  ],
+  Venomous: [
+    { key: 'toxin', kind: 'select', label: 'Drug or poison', placeholder: 'Choose or type…', options: ['Drift', 'Trance powder', 'Battlebrew', 'Grave dust', 'Spark essence', 'Standstill', 'Croaker'] },
+  ],
+  Alchemist: [
+    { key: 'formula', kind: 'text', label: 'Starting special formula', placeholder: 'Name the formula you begin knowing…' },
+  ],
+  Artificer: [
+    { key: 'design', kind: 'text', label: 'Starting special design', placeholder: 'Name the spark-craft design you begin knowing…' },
+  ],
+  Ritual: [
+    { key: 'ritual', kind: 'text', label: 'Starting ritual', placeholder: 'Name the ritual you begin knowing…' },
+  ],
+  'Strange Methods': [
+    { key: 'design', kind: 'text', label: 'Starting arcane design', placeholder: 'Name the arcane design you begin knowing…' },
+  ],
+}
+
+// Abilities that grant a special-armor box. Selecting one flips on the
+// character's special armor; deselecting (with no other such ability) flips it off.
+export const SPECIAL_ARMOR_ABILITIES = new Set<string>([
+  'Battleborn', // Cutter
+  'Focused',    // Hound
+  'Fortitude',  // Leech
+  'Ghost Veil', // Lurk
+  'Shadow',     // Lurk
+  'Subterfuge', // Slide
+  'Mastermind', // Spider
+  'Warded',     // Whisper
+])
+
+// Stress boxes per playbook. The Hound runs hot — one extra box.
+export const PLAYBOOK_MAX_STRESS: Record<Playbook, number> = {
+  cutter: 9,
+  hound: 10,
+  leech: 9,
+  lurk: 9,
+  slide: 9,
+  spider: 9,
+  whisper: 9,
 }
 
 export const PLAYBOOK_XP_TRIGGERS: Record<Playbook, string> = {

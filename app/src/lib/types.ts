@@ -115,6 +115,9 @@ export interface Character {
   load_level: LoadLevel | null
   items_carried: string[]
   special_abilities: string[]
+  // Conditional input captured for abilities that need it (e.g. Veteran's pick,
+  // Ghost Hunter's pet). Keyed by `${abilityName}:${fieldKey}`.
+  ability_details: Record<string, string>
   contacts: CharacterContact[]
   notes: string | null
   created_at: string

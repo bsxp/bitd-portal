@@ -139,6 +139,69 @@ export const PLAYBOOK_ABILITIES: Record<Playbook, SpecialAbility[]> = {
   ],
 }
 
+export const CREW_ABILITIES: Record<CrewType, SpecialAbility[]> = {
+  assassins: [
+    { name: 'Predators', description: 'When you Gather Info to locate a target or plan an ambush, you get +1 effect.' },
+    { name: 'Emperors of the Underworld', description: 'Add +1d to a Command or Sway roll when you give an ultimatum, lay down the law, or deliver a threat to another member of the underworld.' },
+    { name: 'Crow\'s Veil', description: 'After your crew kills someone, take +1d to rolls to lay low and reduce heat from the law.' },
+    { name: 'Ghost Division', description: 'Your hunting grounds extend into the spirit world. You may add the spectral trait to your cohorts, even gangs.' },
+    { name: 'Patron', description: 'Your crew is favored by an important person of higher Tier. When the patron calls on you for a special mission, gain +1 rep for the operation and an extra die to the engagement roll.' },
+    { name: 'No Traces', description: 'When your crew makes a killing, you reduce the heat from the job by 2.' },
+    { name: 'Vipers', description: 'Each PC may add 1 minor ability from a different crew type, as if they had the Veteran ability — or pick a damage bonus for poisons.' },
+    { name: 'Veteran', description: 'Choose a special ability from another crew.' },
+  ],
+  bravos: [
+    { name: 'Insurance', description: 'When a member of your crew is arrested, your contacts and threats help. Take +1d to incarceration rolls.' },
+    { name: 'Forged Papers', description: 'When you fast-talk officials, you have the papers to back it up. Take +1d when you smuggle goods or people past inspection.' },
+    { name: 'Deadly', description: 'Each PC may add +1 harm to attacks they make in dangerous situations during combat.' },
+    { name: 'Vipers', description: 'When you Skirmish or Wreck to inflict harm with a gang, you get +1 scale for the action.' },
+    { name: 'Patron', description: 'Your crew is favored by an important person of higher Tier. When the patron calls on you for a special mission, gain +1 rep for the operation and an extra die to the engagement roll.' },
+    { name: 'War Dogs', description: 'Take +1d to a roll when you Skirmish or Wreck against a foe of higher Tier (and you do not suffer reduced effect for their advantage).' },
+    { name: 'The Coats Are Off', description: 'When your gang fights with you and stands their ground, they gain +1 scale and morale.' },
+    { name: 'Veteran', description: 'Choose a special ability from another crew.' },
+  ],
+  cult: [
+    { name: 'Anointed', description: 'When you perform an arcane ritual, take +1d to the roll. You may use a Tier-equal arcane implement as if it were Fine quality.' },
+    { name: 'Chosen', description: 'One member of your crew is the chosen of your deity. They begin with +1 stress box and may serve as a special cohort.' },
+    { name: 'Conviction', description: 'You may use your faith to push yourself or resist a consequence, drawing on the favor of your deity rather than your own stress reserves.' },
+    { name: 'Zealotry', description: 'When your crew faces certain death or terrible fortune in service of your deity, you may sacrifice a member to call upon a miracle.' },
+    { name: 'Glin', description: 'Your crew is shrouded in your deity\'s power. Take +1d to lay low or hide from earthly authorities while honoring your faith.' },
+    { name: 'Sworn', description: 'When a member of your cult dies, their spirit lingers to aid the crew. You may add the spectral trait to a cohort.' },
+    { name: 'Communion', description: 'When you Attune to commune with your deity for guidance, the GM will tell you the path forward and you take +1d to the engagement roll for any operation it sanctions.' },
+    { name: 'Veteran', description: 'Choose a special ability from another crew.' },
+  ],
+  hawkers: [
+    { name: 'Closer', description: 'When you make a deal to sell goods or services, you may push yourself to get +1 result level on the transaction.' },
+    { name: 'Higher Ambition', description: 'You gain an additional xp trigger: you contended with challenges above your current station. When in doubt, the GM decides.' },
+    { name: 'Hometown Hero', description: 'When you reduce heat by laying low in your hunting grounds, take +1d. The locals help cover for you.' },
+    { name: 'Honest Work', description: 'Once per downtime phase, gain +1 coin from a legitimate front business that washes your dirty money.' },
+    { name: 'Patron', description: 'Your crew is favored by an important person of higher Tier. When the patron calls on you for a special mission, gain +1 rep for the operation and an extra die to the engagement roll.' },
+    { name: 'Sumptuous Manor', description: 'Your crew\'s lair includes a luxurious venue. Take +1d to Consort and Sway rolls made there.' },
+    { name: 'The Good Stuff', description: 'When you sell quality product, the customer is hooked. Take +1 coin per sale and +1d to rolls to entangle them as a contact.' },
+    { name: 'Veteran', description: 'Choose a special ability from another crew.' },
+  ],
+  shadows: [
+    { name: 'Everyone Steals', description: 'When your crew earns coin from a score, you also earn +1 stash (split among the crew) from the small valuables you skim along the way.' },
+    { name: 'Ghost Echoes', description: 'Your crew can attune to the echoes of the past in a location. When you Gather Information about a place\'s history or hidden features, you get +1 effect.' },
+    { name: 'Patron', description: 'Your crew is favored by an important person of higher Tier. When the patron calls on you for a special mission, gain +1 rep for the operation and an extra die to the engagement roll.' },
+    { name: 'Pack Rats', description: 'You get an extra item slot when you choose your gear for a score, and your "fine" items are of exceptional quality.' },
+    { name: 'Second Story', description: 'Your crew is expert at infiltration from above. When you use climbing gear or rooftop approaches, you get +1d to rolls to bypass an obstacle or avoid detection.' },
+    { name: 'Slippery', description: 'After the crew rolls for an entanglement, you may spend 2 rep to roll again and take the better result. The crew is hard to pin down.' },
+    { name: 'Synchronized', description: 'When your crew performs a group action, the leader may suffer only 1 stress at most from the roll, no matter how many crew members fail.' },
+    { name: 'Veteran', description: 'Choose a special ability from another crew.' },
+  ],
+  smugglers: [
+    { name: 'Steady Hands', description: 'When your crew transports goods or people, take +1d to the engagement roll for the operation.' },
+    { name: 'Like Part of the Family', description: 'When you acquire an asset or reduce heat by working with a vehicle crew or transport cohort, you get +1 result level.' },
+    { name: 'All Hands', description: 'When members of your crew work together to crew a vehicle or vessel, the whole group acts as one and the leader suffers reduced stress from the group action.' },
+    { name: 'Reavers', description: 'Your vehicles are built for trouble. Your crew\'s vehicles get +1 quality, and gain a built-in feature (armor, speed, or a hidden compartment).' },
+    { name: 'Patron', description: 'Your crew is favored by an important person of higher Tier. When the patron calls on you for a special mission, gain +1 rep for the operation and an extra die to the engagement roll.' },
+    { name: 'Ghost Passage', description: 'Your crew knows safe routes through the deathlands and ghost field. You may travel into spirit-haunted territory without the usual dangers.' },
+    { name: 'A Little Something for the Effort', description: 'When your crew completes a delivery or transport score, each PC earns +1 stash.' },
+    { name: 'Veteran', description: 'Choose a special ability from another crew.' },
+  ],
+}
+
 // ── Abilities that require extra player input when selected ──
 // Captured into Character.ability_details under `${abilityName}:${field.key}`.
 // `options` are suggestions only — every field also accepts free text.

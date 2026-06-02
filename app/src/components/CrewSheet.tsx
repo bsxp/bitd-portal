@@ -6,7 +6,7 @@ import { XPTracker } from '@/components/trackers/XPTracker'
 import { CoinTracker } from '@/components/trackers/CoinTracker'
 import { ClaimsMap } from '@/components/trackers/ClaimsMap'
 import { InfoLabel } from '@/components/InfoLabel'
-import { CREW_XP_TRIGGERS } from '@/lib/game-data'
+import { CREW_XP_TRIGGERS, CREW_ABILITIES } from '@/lib/game-data'
 import { cn } from '@/lib/utils'
 import type { Crew } from '@/lib/types'
 
@@ -73,6 +73,62 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Special Abilities */}
+      {crew.crew_type && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg capitalize">{crew.crew_type} Abilities</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-1 sm:grid-cols-2">
+              {CREW_ABILITIES[crew.crew_type].map((ability) => {
+                const selected = crew.special_abilities.includes(ability.name)
+                return (
+                  <button
+                    key={ability.name}
+                    onClick={() => {
+                      if (readonly) return
+                      const next = selected
+                        ? crew.special_abilities.filter((a) => a !== ability.name)
+                        : [...crew.special_abilities, ability.name]
+                      onUpdate({ special_abilities: next })
+                    }}
+                    disabled={readonly}
+                    className={cn(
+                      'group flex w-full gap-2 rounded-md border px-3 py-2 text-left transition-colors',
+                      selected
+                        ? 'border-primary/40 bg-primary/5'
+                        : 'border-transparent bg-muted/30 opacity-50',
+                      !readonly && 'cursor-pointer hover:opacity-100',
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border-2 transition-colors',
+                        selected ? 'border-primary bg-primary' : 'border-muted-foreground/40',
+                      )}
+                    />
+                    <div className="min-w-0">
+                      <span
+                        className={cn(
+                          'text-sm font-semibold',
+                          selected ? 'text-foreground' : 'text-muted-foreground',
+                        )}
+                      >
+                        {ability.name}
+                      </span>
+                      <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                        {ability.description}
+                      </p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tier, Hold, Rep */}
       <div className="grid gap-4 lg:grid-cols-2">

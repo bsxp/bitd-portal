@@ -17,10 +17,6 @@ export function ClaimsMap({ crewType, claimsSeized, onToggleClaim, readonly }: C
   const isLair = (r: number, c: number) => isLairCell(r, c)
   const isClaimed = (r: number, c: number) => claimsSeized.includes(claimKey(r, c))
 
-  const turfCount = claims.flatMap((row, r) =>
-    row.map((claim, c) => ({ claim, r, c }))
-  ).filter(({ claim, r, c }) => claim.name === 'Turf' && isClaimed(r, c)).length
-
   const elements: React.ReactNode[] = []
 
   for (let gridRow = 0; gridRow < 5; gridRow++) {
@@ -141,11 +137,6 @@ export function ClaimsMap({ crewType, claimsSeized, onToggleClaim, readonly }: C
           {elements}
         </div>
       </div>
-      {turfCount > 0 && (
-        <p className="text-xs text-muted-foreground">
-          Turf held: {turfCount} (reduces rep needed to advance tier)
-        </p>
-      )}
     </div>
   )
 }

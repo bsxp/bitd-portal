@@ -38,6 +38,12 @@ type ToastInput = Omit<ToastItem, 'id'>
 
 const HARM_FIELDS: (keyof Character)[] = ['harm_level3', 'harm_level2_a', 'harm_level2_b', 'harm_level1_a', 'harm_level1_b']
 
+// Coin capacity for the crew treasury and each character. Coin held above this
+// is "ephemeral" overflow — it must be spent or stashed during downtime and is
+// wiped (capped back to capacity) when the next score begins. Used both as the
+// CoinTracker capacity threshold and the startScore wipe cap.
+export const COIN_CAPACITY = 4
+
 // Given an incoming (remote) 'put' payload and the pre-apply state, produce
 // toasts only for changes to the PARTY (crew) or to the viewer's OWN character.
 // Other players' changes intentionally produce nothing.
@@ -347,9 +353,25 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
       completed_at: null,
       created_at: new Date().toISOString(),
     }
-    const p = { score }
-    applyPut(p); broadcast('put', p); persistScore(score)
-  }, [applyPut, broadcast, persistScore, campaignId])
+    // Wipe ephemeral coin as the next score begins: cap the crew treasury and
+    // every character's coin back to capacity, discarding any overflow that
+    // wasn't spent or stashed during downtime. Bundled into the same atomic put
+    // so it broadcasts to peers and persists alongside the new score.
+    const crew = stateRef.current.crew
+    const cappedCrew: Crew | null =
+      crew && crew.coin > COIN_CAPACITY ? { ...crew, coin: COIN_CAPACITY } : null
+    const cappedChars = stateRef.current.characters
+      .filter((c) => c.coin > COIN_CAPACITY)
+      .map((c) => ({ ...c, coin: COIN_CAPACITY }))
+
+    const p: PutPayload = { score }
+    if (cappedCrew) p.crew = cappedCrew
+    if (cappedChars.length) p.characters = cappedChars
+    applyPut(p); broadcast('put', p)
+    persistScore(score)
+    if (cappedCrew) persistCrew(cappedCrew)
+    if (cappedChars.length) persistChars(cappedChars)
+  }, [applyPut, broadcast, persistScore, persistCrew, persistChars, campaignId])
 
   const updateScore = useCallback((updates: Partial<Score>) => {
     const cur = stateRef.current.currentScore

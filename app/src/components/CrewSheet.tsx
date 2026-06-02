@@ -17,6 +17,7 @@ import {
 } from '@/lib/game-data'
 import type { CrewUpgrade } from '@/lib/game-data'
 import { cn } from '@/lib/utils'
+import { COIN_CAPACITY } from '@/lib/store'
 import type { Crew } from '@/lib/types'
 
 const MAX_REP = 12
@@ -435,11 +436,12 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
             {/* Coin */}
             <CoinTracker
               label="Coin"
-              tip="Crew treasury. Limited by vault capacity. Spend to advance Tier or acquire assets."
+              tip="Crew treasury. Coin above capacity is ephemeral — spend it (e.g. to advance Tier or acquire assets) during downtime or it's wiped before the next score."
               value={crew.coin}
-              max={crew.vault_capacity}
+              max={COIN_CAPACITY}
               onChange={(coin) => onUpdate({ coin })}
               readonly={readonly}
+              ephemeral
             />
           </CardContent>
         </Card>

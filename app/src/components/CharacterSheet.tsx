@@ -466,11 +466,12 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
             <div className="grid grid-cols-2 gap-4">
               <CoinTracker
                 label="Coin"
-                tip="Spend on gear, lifestyle, and downtime activities."
+                tip="Spend on gear, lifestyle, and downtime activities. Coin above capacity is ephemeral — spend or stash it during downtime or it's wiped before the next score."
                 value={character.coin}
                 max={4}
                 onChange={(coin) => onUpdate({ coin })}
                 readonly={readonly}
+                ephemeral
               />
               <div className="space-y-1">
                 <CoinTracker

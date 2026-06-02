@@ -5,11 +5,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { ClockDisplay } from '@/components/trackers/ClockDisplay'
-import { useGame } from '@/lib/store'
+import { useGame, COIN_CAPACITY } from '@/lib/store'
 import { PLAN_TYPES } from '@/lib/game-data'
 import { POSITION_INFO } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { Target, Plus, Flag, X, Coins, TrendingUp, Flame, History } from 'lucide-react'
+import { Target, Plus, Flag, X, Coins, TrendingUp, Flame, History, AlertTriangle } from 'lucide-react'
 import type { Position, Clock, Score } from '@/lib/types'
 
 const POSITIONS: Position[] = ['controlled', 'risky', 'desperate']
@@ -46,6 +46,17 @@ export function ScorePanel({ isGM }: { isGM: boolean }) {
 
   // ── NO ACTIVE SCORE (Free Play / Downtime) ──
   if (!currentScore) {
+    // Ephemeral coin will be wiped (capped to capacity) when the next score
+    // starts. Surface who stands to lose how much so the GM can prompt players
+    // to spend or stash it first.
+    const ephemeralLosses: { name: string; lose: number }[] = []
+    if (crew && crew.coin > COIN_CAPACITY) {
+      ephemeralLosses.push({ name: crew.name, lose: crew.coin - COIN_CAPACITY })
+    }
+    for (const c of characters) {
+      if (c.coin > COIN_CAPACITY) ephemeralLosses.push({ name: c.name, lose: c.coin - COIN_CAPACITY })
+    }
+
     return (
       <div className="space-y-10">
         <div className="mx-auto max-w-md pt-12 text-center">
@@ -54,6 +65,25 @@ export function ScorePanel({ isGM }: { isGM: boolean }) {
           <p className="mt-1 text-sm text-muted-foreground">
             The crew is in free play or downtime. When you pick a target and commit to a job, start the score here.
           </p>
+          {isGM && ephemeralLosses.length > 0 && (
+            <div className="mt-4 rounded-md border-2 border-amber-500/50 bg-amber-500/10 p-3 text-left">
+              <div className="flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                Ephemeral coin will be wiped at the next score
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Coin above capacity ({COIN_CAPACITY}) is lost when the score starts. Have them spend or stash it first.
+              </p>
+              <ul className="mt-2 space-y-0.5 text-xs text-amber-700 dark:text-amber-400">
+                {ephemeralLosses.map((e) => (
+                  <li key={e.name} className="flex items-center gap-1">
+                    <Coins className="h-3 w-3 shrink-0" />
+                    <span><strong>{e.name}</strong> loses {e.lose} coin</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {isGM && (
             <Button className="mt-4 gap-1.5" onClick={startScore}>
               <Plus className="h-4 w-4" />

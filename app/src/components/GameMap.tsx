@@ -154,7 +154,7 @@ export function GameMap({ isGM }: { isGM: boolean }) {
     } catch { /* realtime unavailable */ }
   }, [campaignId, sessionId])
 
-  function broadcast(event: string, payload: Record<string, unknown>) {
+  function broadcast(event: string, payload: object) {
     try {
       channelRef.current?.send({ type: 'broadcast', event, payload })
     } catch { /* ignore */ }

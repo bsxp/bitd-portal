@@ -54,7 +54,7 @@ function ClockGroup({
                       onSegmentClick={(filled) => onUpdate(clock.id, { filled })}
                       readonly={!isGM}
                     />
-                    <span className="max-w-24 truncate text-center text-xs font-medium">
+                    <span className="w-24 break-words text-center text-xs font-medium leading-tight">
                       {clock.name}
                     </span>
                     <div className="flex items-center gap-1">

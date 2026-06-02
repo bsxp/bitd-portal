@@ -331,7 +331,7 @@ export function ScorePanel({ isGM }: { isGM: boolean }) {
                 className="h-8 flex-1 text-sm"
               />
               <div className="flex gap-1">
-                {[4, 6, 8, 12].map((seg) => (
+                {[4, 6, 8, 10, 12].map((seg) => (
                   <button
                     key={seg}
                     onClick={() => setNewClockSegments(seg)}

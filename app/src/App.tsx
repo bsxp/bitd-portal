@@ -283,6 +283,7 @@ function AppContent() {
               <CharacterSheet
                 character={activeCharacter}
                 onUpdate={(updates) => updateCharacter(activeCharacter.id, updates)}
+                isGM={isGM}
               />
             )}
           </TabsContent>

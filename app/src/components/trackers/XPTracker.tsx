@@ -8,13 +8,18 @@ interface XPTrackerProps {
   max: number
   onXPChange: (value: number) => void
   readonly?: boolean
+  /** When the track is full and this is provided, render an advance button in place of "ADVANCE!". */
+  onAdvance?: () => void
+  advanceLabel?: string
 }
 
-export function XPTracker({ label, tip, current, max, onXPChange, readonly }: XPTrackerProps) {
+export function XPTracker({ label, tip, current, max, onXPChange, readonly, onAdvance, advanceLabel }: XPTrackerProps) {
   function handleClick(index: number) {
     if (readonly) return
     onXPChange(current === index + 1 ? index : index + 1)
   }
+
+  const full = current >= max
 
   return (
     <div className="flex items-center gap-2">
@@ -39,8 +44,17 @@ export function XPTracker({ label, tip, current, max, onXPChange, readonly }: XP
           />
         ))}
       </div>
-      {current >= max && (
-        <span className="text-xs font-bold text-primary">ADVANCE!</span>
+      {full && (
+        onAdvance && !readonly ? (
+          <button
+            onClick={onAdvance}
+            className="rounded border border-primary bg-primary/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-primary transition-colors hover:bg-primary/20"
+          >
+            {advanceLabel ?? 'Advance!'}
+          </button>
+        ) : (
+          <span className="text-xs font-bold text-primary">ADVANCE!</span>
+        )
       )}
     </div>
   )

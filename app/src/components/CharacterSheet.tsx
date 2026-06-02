@@ -38,6 +38,8 @@ interface CharacterSheetProps {
   character: Character
   onUpdate: (updates: Partial<Character>) => void
   readonly?: boolean
+  /** GM gets free editing of action dots / XP; players are gated to the advance flow. */
+  isGM?: boolean
 }
 
 function SectionHeader({ label, className }: { label: string; className?: string }) {
@@ -51,7 +53,7 @@ function SectionHeader({ label, className }: { label: string; className?: string
   )
 }
 
-export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheetProps) {
+export function CharacterSheet({ character, onUpdate, readonly, isGM }: CharacterSheetProps) {
   const [profileOpen, setProfileOpen] = useState(false)
 
   const abilities = character.playbook ? PLAYBOOK_ABILITIES[character.playbook] : []
@@ -277,17 +279,35 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
           </Card>
         </div>
 
-        {/* RIGHT: Action Ratings (vertical) */}
+        {/* RIGHT: Action Ratings + Experience (vertical) */}
         <Card>
           <CardContent className="pt-4">
-            <SectionHeader label="Actions" className="mb-3" />
+            <SectionHeader label="Actions & Experience" className="mb-3" />
             <ActionRatings
               character={character}
               onActionChange={(action: ActionName, value: number) =>
                 onUpdate({ [action]: value })
               }
+              onUpdate={onUpdate}
               readonly={readonly}
+              isGM={isGM}
             />
+            <Separator className="my-3" />
+            <div className="space-y-1.5">
+              <XPTracker
+                label="Playbook"
+                tip="Mark at end of session for your playbook trigger. At max, take a new special ability."
+                current={character.playbook_xp}
+                max={8}
+                onXPChange={(playbook_xp) => onUpdate({ playbook_xp })}
+                readonly={readonly}
+              />
+              {character.playbook && (
+                <p className="ml-[calc(5rem+0.5rem)] text-[10px] italic text-muted-foreground">
+                  {PLAYBOOK_XP_TRIGGERS[character.playbook]}
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -299,7 +319,14 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
       {abilities.length > 0 && (
         <Card>
           <CardContent className="pt-4">
-            <SectionHeader label={`${character.playbook} Abilities`} className="mb-2" />
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <SectionHeader label={`${character.playbook} Abilities`} />
+              {character.playbook_xp >= 8 && (
+                <span className="rounded border border-primary bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                  Advance ready — take a new ability
+                </span>
+              )}
+            </div>
             <div className="grid gap-1 sm:grid-cols-2">
               {abilities.map((ability) => {
                 const selected = character.special_abilities.includes(ability.name)
@@ -316,12 +343,16 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
                     <button
                       onClick={() => {
                         if (readonly) return
+                        const taking = !selected
                         const next = selected
                           ? character.special_abilities.filter(a => a !== ability.name)
                           : [...character.special_abilities, ability.name]
                         onUpdate({
                           special_abilities: next,
                           special_armor_available: derivesSpecialArmor(next, details),
+                          // Taking a new ability while the playbook XP track is full
+                          // spends the advance: reset the track to 0.
+                          ...(taking && character.playbook_xp >= 8 ? { playbook_xp: 0 } : {}),
                         })
                       }}
                       disabled={readonly}
@@ -431,81 +462,34 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
           </CardContent>
         </Card>
 
-        {/* RIGHT: Coin, Stash, XP */}
-        <div className="space-y-3">
-          <Card>
-            <CardContent className="pt-4">
-              <div className="grid grid-cols-2 gap-4">
+        {/* RIGHT: Coin & Stash */}
+        <Card>
+          <CardContent className="pt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <CoinTracker
+                label="Coin"
+                tip="Spend on gear, lifestyle, and downtime activities."
+                value={character.coin}
+                max={4}
+                onChange={(coin) => onUpdate({ coin })}
+                readonly={readonly}
+              />
+              <div className="space-y-1">
                 <CoinTracker
-                  label="Coin"
-                  tip="Spend on gear, lifestyle, and downtime activities."
-                  value={character.coin}
-                  max={4}
-                  onChange={(coin) => onUpdate({ coin })}
+                  label="Stash"
+                  tip="Long-term savings. Every full row of 10 raises your Wealth Level. At 40, your character retires."
+                  value={character.stash}
+                  max={40}
+                  onChange={(stash) => onUpdate({ stash })}
                   readonly={readonly}
                 />
-                <div className="space-y-1">
-                  <CoinTracker
-                    label="Stash"
-                    tip="Long-term savings. Every full row of 10 raises your Wealth Level. At 40, your character retires."
-                    value={character.stash}
-                    max={40}
-                    onChange={(stash) => onUpdate({ stash })}
-                    readonly={readonly}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Wealth Level <span className="font-bold text-foreground">{Math.floor(character.stash / 10)}</span>
-                  </p>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  Wealth Level <span className="font-bold text-foreground">{Math.floor(character.stash / 10)}</span>
+                </p>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-4">
-              <SectionHeader label="Experience" className="mb-2" />
-              <div className="space-y-1.5">
-                <XPTracker
-                  label="Playbook"
-                  tip="Mark at end of session for your playbook trigger. At max, take a new special ability."
-                  current={character.playbook_xp}
-                  max={8}
-                  onXPChange={(playbook_xp) => onUpdate({ playbook_xp })}
-                  readonly={readonly}
-                />
-                {character.playbook && (
-                  <p className="ml-[calc(5rem+0.5rem)] text-[10px] italic text-muted-foreground">
-                    {PLAYBOOK_XP_TRIGGERS[character.playbook]}
-                  </p>
-                )}
-                <XPTracker
-                  label="Insight"
-                  tip="Mark when you roll a desperate Hunt, Study, Survey, or Tinker."
-                  current={character.insight_xp}
-                  max={6}
-                  onXPChange={(insight_xp) => onUpdate({ insight_xp })}
-                  readonly={readonly}
-                />
-                <XPTracker
-                  label="Prowess"
-                  tip="Mark when you roll a desperate Finesse, Prowl, Skirmish, or Wreck."
-                  current={character.prowess_xp}
-                  max={6}
-                  onXPChange={(prowess_xp) => onUpdate({ prowess_xp })}
-                  readonly={readonly}
-                />
-                <XPTracker
-                  label="Resolve"
-                  tip="Mark when you roll a desperate Attune, Command, Consort, or Sway."
-                  current={character.resolve_xp}
-                  max={6}
-                  onXPChange={(resolve_xp) => onUpdate({ resolve_xp })}
-                  readonly={readonly}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* ══════════════════════════════════════════════

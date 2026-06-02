@@ -29,7 +29,7 @@ import { GameProvider, useGame } from '@/lib/store'
 import { SessionProvider, useSession } from '@/lib/session'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { Shield, Users, Clock, Swords, Eye, EyeOff, Plus, Home, Map, Target, Loader2, LogOut } from 'lucide-react'
+import { Shield, Users, Clock, Swords, Eye, EyeOff, Plus, Home, Map, Target, Loader2, LogOut, TrendingUp, Flame, Coins } from 'lucide-react'
 import type { Clock as ClockType, ClockScope } from '@/lib/types'
 import type { OnlinePlayer } from '@/lib/store'
 
@@ -156,6 +156,54 @@ function AppContent() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-6">
+        {/* Compact crew status bar — persistent across tabs */}
+        {crew && (
+          <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border bg-card px-3 py-1.5">
+            <button
+              onClick={() => setActiveTab('crew')}
+              className="text-sm font-bold hover:underline"
+            >
+              {crew.name}
+            </button>
+            {crew.crew_type && (
+              <span className="rounded border px-1.5 py-0.5 text-[10px] uppercase capitalize text-muted-foreground">
+                {crew.crew_type}
+              </span>
+            )}
+            {crew.reputation && <span className="text-xs text-muted-foreground">{crew.reputation}</span>}
+            <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <span className="flex items-center gap-1 text-xs" title="Tier">
+                <span className="text-muted-foreground">Tier</span>
+                <span className="font-bold tabular-nums">{crew.tier}</span>
+                <span className={cn(
+                  'rounded px-1 py-0.5 text-[10px] font-medium',
+                  crew.hold === 'strong' ? 'bg-green-500/15 text-green-700' : 'bg-yellow-500/15 text-yellow-700',
+                )}>
+                  {crew.hold}
+                </span>
+              </span>
+              <span className="flex items-center gap-1 text-xs" title="Reputation">
+                <TrendingUp className="h-3.5 w-3.5 text-blue-500" />
+                <span className="font-bold tabular-nums">{crew.rep}</span>
+                <span className="text-muted-foreground">/12</span>
+              </span>
+              <span className="flex items-center gap-1 text-xs" title="Heat">
+                <Flame className="h-3.5 w-3.5 text-orange-500" />
+                <span className={cn('font-bold tabular-nums', crew.heat > 5 && 'text-orange-600')}>{crew.heat}</span>
+                <span className="text-muted-foreground">/9</span>
+              </span>
+              {crew.wanted_level > 0 && (
+                <span className="text-xs font-bold text-red-600" title="Wanted level">
+                  Wanted {crew.wanted_level}
+                </span>
+              )}
+              <span className="flex items-center gap-1 text-xs" title="Coin">
+                <Coins className="h-3.5 w-3.5 text-yellow-600" />
+                <span className="font-bold tabular-nums text-yellow-700">{crew.coin}</span>
+              </span>
+            </div>
+          </div>
+        )}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-6 w-full justify-start">
             <TabsTrigger value="overview" className="gap-1.5">

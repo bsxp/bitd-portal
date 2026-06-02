@@ -157,3 +157,15 @@
   border-radius: 9999px;
   animation: map-ping-dot 1.2s ease-out forwards;
 }
+
+/* Bottom toasts (incoming events that affect you or the party). */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(10px); }
+}
+.toast-in  { animation: toast-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.toast-out { animation: toast-out 360ms ease forwards; }

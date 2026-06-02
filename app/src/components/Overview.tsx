@@ -426,62 +426,6 @@ export function Overview({
 
   return (
     <div className="space-y-6">
-      {/* Crew banner */}
-      {crew && (
-        <Card>
-          <CardContent className="py-4">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-baseline gap-3">
-                <span className="text-xl font-bold">{crew.name}</span>
-                {crew.crew_type && (
-                  <Badge variant="outline" className="capitalize">{crew.crew_type}</Badge>
-                )}
-                {crew.reputation && (
-                  <span className="text-sm text-muted-foreground">{crew.reputation}</span>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-4 text-sm">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-muted-foreground">Tier</span>
-                  <span className="font-bold">{crew.tier}</span>
-                  <span className={cn(
-                    'rounded px-1.5 py-0.5 text-xs font-medium',
-                    crew.hold === 'strong' ? 'bg-green-500/15 text-green-700' : 'bg-yellow-500/15 text-yellow-700',
-                  )}>
-                    {crew.hold}
-                  </span>
-                </div>
-                <Separator orientation="vertical" className="h-4" />
-                <div>
-                  <span className="text-muted-foreground">Rep </span>
-                  <span className="font-bold">{crew.rep}</span>
-                  <span className="text-muted-foreground">/12</span>
-                </div>
-                <Separator orientation="vertical" className="h-4" />
-                <div className={cn(crew.heat > 5 && 'text-orange-600')}>
-                  <span className="text-muted-foreground">Heat </span>
-                  <span className="font-bold">{crew.heat}</span>
-                  <span className="text-muted-foreground">/9</span>
-                </div>
-                {crew.wanted_level > 0 && (
-                  <>
-                    <Separator orientation="vertical" className="h-4" />
-                    <span className="font-bold text-red-600">
-                      Wanted {crew.wanted_level}
-                    </span>
-                  </>
-                )}
-                <Separator orientation="vertical" className="h-4" />
-                <div>
-                  <span className="text-yellow-600 font-bold">{crew.coin}</span>
-                  <span className="text-muted-foreground"> coin</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* GM Quick Actions */}
       {isGM && onCharacterUpdate && onCrewUpdate && onEndScore && (
         <GMQuickActions

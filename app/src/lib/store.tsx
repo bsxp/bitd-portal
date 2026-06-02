@@ -6,6 +6,7 @@ import {
   saveEntity, saveEntities, deleteEntity, setCampaignMap,
 } from './db'
 import type { Seat } from './session'
+import { Toaster, type ToastItem } from '@/components/Toaster'
 
 // ── Shared game state ──
 // Loaded from Postgres on mount, scoped to a campaign. Every mutation applies
@@ -30,6 +31,63 @@ interface PutPayload {
 interface RemovePayload {
   clockIds?: string[]
   factionIds?: string[]
+}
+
+type ToastInput = Omit<ToastItem, 'id'>
+
+const HARM_FIELDS: (keyof Character)[] = ['harm_level3', 'harm_level2_a', 'harm_level2_b', 'harm_level1_a', 'harm_level1_b']
+
+// Given an incoming (remote) 'put' payload and the pre-apply state, produce
+// toasts only for changes to the PARTY (crew) or to the viewer's OWN character.
+// Other players' changes intentionally produce nothing.
+function buildToasts(p: PutPayload, prev: { characters: Character[]; crew: Crew | null }, myCharId: string | null): ToastInput[] {
+  const out: ToastInput[] = []
+
+  if (p.crew && prev.crew) {
+    const a = prev.crew, b = p.crew
+    if (b.coin !== a.coin) {
+      const d = b.coin - a.coin
+      out.push({ scope: 'party', tone: d > 0 ? 'good' : 'neutral', text: d > 0 ? `Party gained ${d} coin` : `Party spent ${-d} coin` })
+    }
+    if (b.rep !== a.rep) {
+      const d = b.rep - a.rep
+      out.push({ scope: 'party', tone: d > 0 ? 'good' : 'neutral', text: d > 0 ? `Party gained ${d} rep` : `Party lost ${-d} rep` })
+    }
+    if (b.heat !== a.heat) {
+      const d = b.heat - a.heat
+      out.push({ scope: 'party', tone: d > 0 ? 'bad' : 'good', text: d > 0 ? `Party heat +${d}` : `Party heat ${d}` })
+    }
+    if (b.wanted_level !== a.wanted_level) {
+      out.push({ scope: 'party', tone: b.wanted_level > a.wanted_level ? 'bad' : 'good', text: `Wanted level → ${b.wanted_level}` })
+    }
+  }
+
+  if (myCharId && p.characters) {
+    const b = p.characters.find((c) => c.id === myCharId)
+    const a = prev.characters.find((c) => c.id === myCharId)
+    if (a && b) {
+      if (b.stress !== a.stress) {
+        const d = b.stress - a.stress
+        out.push({ scope: 'self', tone: d > 0 ? 'bad' : 'good', text: d > 0 ? `You took ${d} stress` : `You cleared ${-d} stress` })
+      }
+      if (b.coin !== a.coin) {
+        const d = b.coin - a.coin
+        out.push({ scope: 'self', tone: d > 0 ? 'good' : 'neutral', text: d > 0 ? `You received ${d} coin` : `You spent ${-d} coin` })
+      }
+      if (b.trauma.length > a.trauma.length) {
+        const added = b.trauma.filter((t) => !a.trauma.includes(t))
+        out.push({ scope: 'self', tone: 'bad', text: `You gained trauma: ${added.join(', ')}` })
+      }
+      for (const f of HARM_FIELDS) {
+        const av = a[f] as string | null
+        const bv = b[f] as string | null
+        if (!av && bv) out.push({ scope: 'self', tone: 'bad', text: `You suffered harm: ${bv}` })
+        else if (av && !bv) out.push({ scope: 'self', tone: 'good', text: 'You recovered from harm' })
+      }
+    }
+  }
+
+  return out
 }
 
 interface GameState {
@@ -111,6 +169,14 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [onlinePlayers, setOnlinePlayers] = useState<OnlinePlayer[]>([])
+  const [toasts, setToasts] = useState<ToastItem[]>([])
+
+  const pushToast = useCallback((t: ToastInput) => {
+    setToasts((prev) => [...prev, { ...t, id: crypto.randomUUID() }].slice(-5))
+  }, [])
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id))
+  }, [])
 
   const [role, setRole] = useState<CampaignRole>(seat.type === 'gm' ? 'gm' : 'player')
   const [characters, setCharacters] = useState<Character[]>([])
@@ -357,7 +423,13 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
 
       ch.on('broadcast', { event: 'op' }, ({ payload }) => {
         if (!payload || payload.sender === sessionId) return
-        applyAction(payload.action as string, (payload.p ?? {}) as PutPayload & RemovePayload)
+        const p = (payload.p ?? {}) as PutPayload & RemovePayload
+        // Toast incoming changes that affect the party or my own character.
+        if (payload.action === 'put') {
+          const myCharId = seat.type === 'character' ? seat.id : null
+          buildToasts(p, stateRef.current, myCharId).forEach(pushToast)
+        }
+        applyAction(payload.action as string, p)
       })
         .on('presence', { event: 'sync' }, () => {
           const state = ch.presenceState() as Record<string, Array<{ seat: string; name: string; sessionId: string }>>
@@ -375,7 +447,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
     } catch {
       return () => { /* realtime unavailable */ }
     }
-  }, [campaignId, sessionId, seat, applyAction])
+  }, [campaignId, sessionId, seat, applyAction, pushToast])
 
   return (
     <GameContext.Provider
@@ -394,6 +466,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
       }}
     >
       {children}
+      <Toaster toasts={toasts} onDismiss={dismissToast} />
     </GameContext.Provider>
   )
 }

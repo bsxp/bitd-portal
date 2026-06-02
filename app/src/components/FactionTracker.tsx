@@ -128,9 +128,37 @@ export function FactionTracker({ factions, onUpdate, onAdd, onDelete, readonly }
                           }
                           <span className="font-medium">{faction.name}</span>
                         </button>
-                        <span className="text-xs text-muted-foreground">
-                          Tier {faction.tier} ({faction.hold[0].toUpperCase()})
-                        </span>
+                        {readonly ? (
+                          <span className="text-xs text-muted-foreground">
+                            Tier {faction.tier} ({faction.hold[0].toUpperCase()})
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            Tier
+                            <select
+                              value={faction.tier}
+                              onChange={(e) => onUpdate(faction.id, { tier: parseInt(e.target.value) })}
+                              className="rounded border border-input bg-background px-1 py-0.5 text-xs text-foreground"
+                              title="Faction tier"
+                            >
+                              {[0, 1, 2, 3, 4, 5, 6].map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => onUpdate(faction.id, { hold: faction.hold === 'strong' ? 'weak' : 'strong' })}
+                              title={`Hold: ${faction.hold} — click to toggle`}
+                              className={cn(
+                                'rounded border px-1.5 py-0.5 text-xs font-bold transition-colors',
+                                faction.hold === 'strong'
+                                  ? 'border-green-500/40 bg-green-500/15 text-green-700 dark:text-green-400'
+                                  : 'border-yellow-500/40 bg-yellow-500/15 text-yellow-700',
+                              )}
+                            >
+                              {faction.hold[0].toUpperCase()}
+                            </button>
+                          </span>
+                        )}
                       </div>
                       {faction.description && (
                         <p className="ml-4 text-xs text-muted-foreground">{faction.description}</p>

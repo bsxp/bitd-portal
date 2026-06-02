@@ -264,6 +264,19 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
             <div className="space-y-1">
               <InfoLabel label="Wanted Level" tip="Attracts Bluecoat and Inspector attention. At 4, expect serious trouble." />
               <div className="flex gap-1">
+                <button
+                  onClick={() => { if (!readonly) onUpdate({ wanted_level: 0 }) }}
+                  disabled={readonly}
+                  className={cn(
+                    'flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors',
+                    crew.wanted_level === 0
+                      ? 'border-foreground bg-foreground text-background'
+                      : 'border-muted-foreground/30',
+                    !readonly && 'cursor-pointer hover:border-foreground/60',
+                  )}
+                >
+                  0
+                </button>
                 {Array.from({ length: 4 }).map((_, i) => (
                   <button
                     key={i}

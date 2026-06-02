@@ -101,7 +101,10 @@ async function seedCampaign(campaignId: string): Promise<CampaignData> {
 
 export async function loadOrSeedCampaign(campaignId: string): Promise<CampaignData> {
   const data = await loadCampaignData(campaignId)
-  if (data.characters.length === 0) {
+  // Only seed a genuinely empty campaign. Gating on the crew as well means a
+  // campaign that has a crew but no characters yet (e.g. PCs not entered yet)
+  // won't get clobbered with demo data.
+  if (data.characters.length === 0 && data.crew === null) {
     return seedCampaign(campaignId)
   }
   return data

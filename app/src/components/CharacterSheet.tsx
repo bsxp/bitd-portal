@@ -292,22 +292,6 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
               readonly={readonly}
               isGM={isGM}
             />
-            <Separator className="my-3" />
-            <div className="space-y-1.5">
-              <XPTracker
-                label="Playbook"
-                tip="Mark at end of session for your playbook trigger. At max, take a new special ability."
-                current={character.playbook_xp}
-                max={8}
-                onXPChange={(playbook_xp) => onUpdate({ playbook_xp })}
-                readonly={readonly}
-              />
-              {character.playbook && (
-                <p className="ml-[calc(5rem+0.5rem)] text-[10px] italic text-muted-foreground">
-                  {PLAYBOOK_XP_TRIGGERS[character.playbook]}
-                </p>
-              )}
-            </div>
           </CardContent>
         </Card>
       </div>
@@ -319,13 +303,27 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
       {abilities.length > 0 && (
         <Card>
           <CardContent className="pt-4">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <SectionHeader label={`${character.playbook} Abilities`} />
-              {character.playbook_xp >= 8 && (
-                <span className="rounded border border-primary bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
-                  Advance ready — take a new ability
-                </span>
-              )}
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-base font-bold uppercase tracking-wide capitalize">
+                  {character.playbook} Abilities
+                </h3>
+                {character.playbook_xp >= 8 && (
+                  <span className="rounded border border-primary bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                    Advance ready — take a new ability
+                  </span>
+                )}
+              </div>
+              <div className="ml-auto">
+                <XPTracker
+                  label="Playbook"
+                  tip={`Mark at end of session for your playbook trigger${character.playbook ? `: ${PLAYBOOK_XP_TRIGGERS[character.playbook]}` : ''} At max (8), take a new special ability.`}
+                  current={character.playbook_xp}
+                  max={8}
+                  onXPChange={(playbook_xp) => onUpdate({ playbook_xp })}
+                  readonly={readonly}
+                />
+              </div>
             </div>
             <div className="grid gap-1 sm:grid-cols-2">
               {abilities.map((ability) => {

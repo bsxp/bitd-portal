@@ -205,7 +205,7 @@ function AppContent() {
           </div>
         )}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6 w-full justify-start">
+          <TabsList className="mb-6 w-full justify-start overflow-x-auto">
             <TabsTrigger value="overview" className="gap-1.5">
               <Home className="h-4 w-4" />
               Overview

@@ -352,13 +352,13 @@ export function ScorePanel({ isGM }: { isGM: boolean }) {
           )}
 
           {isGM && (
-            <div className="mt-4 flex items-center gap-2 border-t pt-3">
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3">
               <Input
                 value={newClockName}
                 onChange={(e) => setNewClockName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddClock()}
                 placeholder="New clock (e.g. Alert the guards)..."
-                className="h-8 flex-1 text-sm"
+                className="h-8 min-w-[12rem] flex-1 text-sm"
               />
               <div className="flex gap-1">
                 {[4, 6, 8, 10, 12].map((seg) => (

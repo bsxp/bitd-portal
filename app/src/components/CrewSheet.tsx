@@ -188,7 +188,17 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
       {crew.crew_type && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg capitalize">{crew.crew_type} Abilities</CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <CardTitle className="text-lg capitalize">{crew.crew_type} Abilities</CardTitle>
+              <XPTracker
+                label="Crew XP"
+                tip={`Mark at end of session for your crew trigger: ${CREW_XP_TRIGGERS[crew.crew_type]} At max (8), take a crew advance.`}
+                current={crew.crew_xp}
+                max={8}
+                onXPChange={(crew_xp) => onUpdate({ crew_xp })}
+                readonly={readonly}
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid gap-1 sm:grid-cols-2">
@@ -347,22 +357,6 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
               </div>
             </div>
 
-            <Separator />
-
-            {/* Crew XP */}
-            <XPTracker
-              label="Crew XP"
-              tip="Mark at end of session for your crew trigger. At max, take a crew advance."
-              current={crew.crew_xp}
-              max={8}
-              onXPChange={(crew_xp) => onUpdate({ crew_xp })}
-              readonly={readonly}
-            />
-            {crew.crew_type && (
-              <p className="text-xs italic text-muted-foreground">
-                {CREW_XP_TRIGGERS[crew.crew_type]}
-              </p>
-            )}
           </CardContent>
         </Card>
 

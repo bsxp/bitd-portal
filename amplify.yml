@@ -6,6 +6,8 @@ applications:
         preBuild:
           commands:
             - npm ci
+            # Vite inlines VITE_* at build time; write Amplify env vars into .env so the build picks them up
+            - env | grep -e '^VITE_' >> .env || true
         build:
           commands:
             - npm run build

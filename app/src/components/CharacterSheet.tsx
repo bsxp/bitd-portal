@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -198,6 +199,7 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
                   stress: 0,
                   trauma: [...character.trauma, newTrauma],
                 })}
+                onTraumaChange={(trauma) => onUpdate({ trauma })}
                 readonly={readonly}
               />
             </CardContent>
@@ -217,7 +219,7 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
                 readonly={readonly}
               />
               <Separator className="my-3" />
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-4">
                 <ClockDisplay
                   segments={4}
                   filled={character.healing_clock}
@@ -226,16 +228,28 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
                   onSegmentClick={(filled) => onUpdate({ healing_clock: filled })}
                   readonly={readonly}
                 />
-                <ArmorTracker
-                  armorAvailable={character.armor_available}
-                  heavyArmorAvailable={character.heavy_armor_available}
-                  specialArmorAvailable={character.special_armor_available}
-                  armorUsed={character.armor_used}
-                  heavyArmorUsed={character.heavy_armor_used}
-                  specialArmorUsed={character.special_armor_used}
-                  onToggle={(field, value) => onUpdate({ [field]: value })}
-                  readonly={readonly}
-                />
+                {!readonly && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Healing reduces every harm by one level: L3 -> L2, L2 -> L1,
+                      // L1 disperses. Old L2 harms (up to 2) fill the two L1 slots.
+                      const downgradedToL1 = [character.harm_level2_a, character.harm_level2_b]
+                        .filter((h): h is string => !!h)
+                      onUpdate({
+                        harm_level3: null,
+                        harm_level2_a: character.harm_level3,
+                        harm_level2_b: null,
+                        harm_level1_a: downgradedToL1[0] ?? null,
+                        harm_level1_b: downgradedToL1[1] ?? null,
+                        healing_clock: Math.min(4, character.healing_clock + 1),
+                      })
+                    }}
+                  >
+                    Apply heal
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -332,6 +346,17 @@ export function CharacterSheet({ character, onUpdate, readonly }: CharacterSheet
                   : [...character.items_carried, item]
                 onUpdate({ items_carried: items })
               }}
+              readonly={readonly}
+            />
+            <Separator className="my-3" />
+            <ArmorTracker
+              armorAvailable={character.armor_available}
+              heavyArmorAvailable={character.heavy_armor_available}
+              specialArmorAvailable={character.special_armor_available}
+              armorUsed={character.armor_used}
+              heavyArmorUsed={character.heavy_armor_used}
+              specialArmorUsed={character.special_armor_used}
+              onToggle={(field, value) => onUpdate({ [field]: value })}
               readonly={readonly}
             />
           </CardContent>

@@ -29,7 +29,7 @@ import { GameProvider, useGame } from '@/lib/store'
 import { SessionProvider, useSession } from '@/lib/session'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { Shield, Users, Clock, Swords, Eye, EyeOff, Plus, Home, Map, Target, Loader2, LogOut, TrendingUp, Flame, Coins } from 'lucide-react'
+import { Shield, Users, Clock, Swords, Eye, EyeOff, Plus, Home, Map, Target, Loader2, LogOut, TrendingUp, Flame, Coins, Wrench, RotateCcw } from 'lucide-react'
 import type { Clock as ClockType, ClockScope } from '@/lib/types'
 import type { OnlinePlayer } from '@/lib/store'
 
@@ -65,6 +65,7 @@ function AppContent() {
     activeCharacterId, setActiveCharacter,
     currentScore,
     endScore,
+    resetGame,
   } = useGame()
   const { session, releaseSeat } = useSession()
 
@@ -75,8 +76,10 @@ function AppContent() {
   const [newClockVisible, setNewClockVisible] = useState(true)
 
   const [activeTab, setActiveTab] = useState('overview')
+  const [resetConfirm, setResetConfirm] = useState(false)
 
   const isGM = role === 'gm'
+  const setupMode = !!crew?.setup_mode
   const activeCharacter = characters.find((c) => c.id === activeCharacterId)
   const visibleClocks = isGM ? clocks : clocks.filter((c) => c.visible_to_players)
 
@@ -143,6 +146,47 @@ function AppContent() {
           </div>
           <div className="flex items-center gap-3">
             <OnlinePlayers players={onlinePlayers} />
+            {isGM && (
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant={setupMode ? 'default' : 'outline'}
+                  size="sm"
+                  className="gap-1.5"
+                  title="Toggle campaign-wide Setup Mode. While on, players can freely edit their own character sheets."
+                  onClick={() => updateCrew({ setup_mode: !setupMode })}
+                >
+                  <Wrench className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Setup {setupMode ? 'On' : 'Off'}</span>
+                </Button>
+                {resetConfirm ? (
+                  <>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => { resetGame(); setResetConfirm(false) }}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Confirm Reset
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setResetConfirm(false)}>
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    title="Blank every character back to a fresh setup state and enable Setup Mode. Does not touch crew, clocks, scores, factions, or the map."
+                    onClick={() => setResetConfirm(true)}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Reset</span>
+                  </Button>
+                )}
+              </div>
+            )}
             <div className="hidden text-sm md:block">
               <span className="text-muted-foreground">You: </span>
               <span className="font-medium">{session?.seat?.name}</span>
@@ -154,6 +198,16 @@ function AppContent() {
           </div>
         </div>
       </header>
+
+      {/* Setup Mode banner — visible to everyone, synced via the crew flag */}
+      {setupMode && (
+        <div className="border-b border-amber-500/40 bg-amber-500/10">
+          <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+            <Wrench className="h-3.5 w-3.5 shrink-0" />
+            Setup Mode — characters are freely editable.
+          </div>
+        </div>
+      )}
 
       <main className="mx-auto max-w-5xl px-4 py-6">
         {/* Compact crew status bar — persistent across tabs */}

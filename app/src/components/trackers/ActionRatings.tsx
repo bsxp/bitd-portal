@@ -41,13 +41,15 @@ export function ActionRatings({ character, onActionChange, onUpdate, readonly, i
   // Which attribute currently has its action-picker open (player advance flow).
   const [advancing, setAdvancing] = useState<AttributeName | null>(null)
 
-  // Players may not free-edit action dots; only the GM (or the gated advance flow) can.
-  const dotsEditable = !readonly && !!isGM
-  const xpEditable = !readonly
-
   // An action can only reach 4 if the crew has unlocked the Mastery upgrade
   // (all four Training boxes filled); otherwise ratings cap at 3.
   const { crew } = useGame()
+
+  // Players may not free-edit action dots; only the GM (or the gated advance flow)
+  // can — UNLESS campaign-wide Setup Mode is on, which lets the owner free-edit
+  // their own dots. `readonly` still gates ownership (no editing teammates).
+  const dotsEditable = !readonly && (!!isGM || !!crew?.setup_mode)
+  const xpEditable = !readonly
   const hasMastery = !!crew && CREW_UPGRADE_UNLOCKS.Training.prerequisites.every(
     (p) => crew.upgrades.includes(p),
   )

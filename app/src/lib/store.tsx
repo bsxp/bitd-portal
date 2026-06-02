@@ -135,6 +135,7 @@ interface GameActions {
   updateScore: (updates: Partial<Score>) => void
   wrapScore: () => void
   abandonScore: () => void
+  resetGame: () => void
 }
 
 const GameContext = createContext<(GameState & GameActions) | null>(null)
@@ -159,6 +160,58 @@ function resetForNewScore(c: Character): Character {
     armor_used: false,
     heavy_armor_used: false,
     special_armor_used: false,
+  }
+}
+
+// Fully blank a character for a "reset to setup". Keeps only the immutable
+// identity/ownership fields (id, campaign_id, user_id, crew_id, created_at) and
+// resets every other field to the makeCharacter defaults in demo-data.ts.
+function blankCharacter(c: Character): Character {
+  return {
+    id: c.id,
+    campaign_id: c.campaign_id,
+    user_id: c.user_id,
+    crew_id: c.crew_id,
+    created_at: c.created_at,
+    name: 'Unnamed',
+    alias: null,
+    look: null,
+    playbook: null,
+    heritage: null,
+    heritage_detail: null,
+    background: null,
+    background_detail: null,
+    vice: null,
+    vice_purveyor: null,
+    stress: 0,
+    trauma: [],
+    coin: 0,
+    stash: 0,
+    playbook_xp: 0,
+    insight_xp: 0,
+    prowess_xp: 0,
+    resolve_xp: 0,
+    hunt: 0, study: 0, survey: 0, tinker: 0,
+    finesse: 0, prowl: 0, skirmish: 0, wreck: 0,
+    attune: 0, command: 0, consort: 0, sway: 0,
+    harm_level3: null,
+    harm_level2_a: null,
+    harm_level2_b: null,
+    harm_level1_a: null,
+    harm_level1_b: null,
+    healing_clock: 0,
+    armor_available: true,
+    heavy_armor_available: false,
+    special_armor_available: true,
+    armor_used: false,
+    heavy_armor_used: false,
+    special_armor_used: false,
+    load_level: null,
+    items_carried: [],
+    special_abilities: [],
+    ability_details: {},
+    contacts: [],
+    notes: null,
   }
 }
 
@@ -420,6 +473,21 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
     if (score) deleteEntity('scores', score.id).catch(onErr)
   }, [applyPut, broadcast, persistChars, persistClocks])
 
+  // Full reset to setup (GM-only, destructive): blank every character back to
+  // makeCharacter defaults (keeping only id/campaign/user/crew/created_at) and
+  // flip the crew into Setup Mode so players can immediately rebuild. Clocks,
+  // scores, factions, crew sheet, and map tokens are intentionally untouched.
+  const resetGame = useCallback(() => {
+    const blankedChars = stateRef.current.characters.map(blankCharacter)
+    const crew = stateRef.current.crew
+    const nextCrew: Crew | null = crew ? { ...crew, setup_mode: true } : null
+    const p: PutPayload = { characters: blankedChars }
+    if (nextCrew) p.crew = nextCrew
+    applyPut(p); broadcast('put', p)
+    persistChars(blankedChars)
+    if (nextCrew) persistCrew(nextCrew)
+  }, [applyPut, broadcast, persistChars, persistCrew])
+
   // ── Load campaign data from Postgres ──
   useEffect(() => {
     let cancelled = false
@@ -501,6 +569,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
         mapImageUrl, setMapImage: setMapImageSynced,
         endScore,
         currentScore, scoreHistory, startScore, updateScore, wrapScore, abandonScore,
+        resetGame,
       }}
     >
       {children}

@@ -62,6 +62,10 @@ export interface Crew {
   upgrades: string[]
   claims_seized: string[]
   notes: string | null
+  // Campaign-wide setup flag (GM-toggled, synced). When true, players may freely
+  // edit their own character sheets (incl. action-rating dots) without the
+  // XP/advance gating. Stored in the crew jsonb; treat undefined as false.
+  setup_mode?: boolean
   created_at: string
 }
 

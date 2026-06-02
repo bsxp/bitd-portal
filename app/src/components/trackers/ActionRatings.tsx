@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { ACTION_RATINGS } from '@/lib/types'
 import { InfoLabel } from '@/components/InfoLabel'
+import { useGame } from '@/lib/store'
+import { CREW_UPGRADE_UNLOCKS } from '@/lib/game-data'
 import type { Character, AttributeName, ActionName } from '@/lib/types'
 
 const ATTRIBUTE_TIPS: Record<AttributeName, string> = {
@@ -43,10 +45,21 @@ export function ActionRatings({ character, onActionChange, onUpdate, readonly, i
   const dotsEditable = !readonly && !!isGM
   const xpEditable = !readonly
 
+  // An action can only reach 4 if the crew has unlocked the Mastery upgrade
+  // (all four Training boxes filled); otherwise ratings cap at 3.
+  const { crew } = useGame()
+  const hasMastery = !!crew && CREW_UPGRADE_UNLOCKS.Training.prerequisites.every(
+    (p) => crew.upgrades.includes(p),
+  )
+  const actionMax = hasMastery ? 4 : 3
+
   function handleDotClick(action: ActionName, index: number) {
     if (!dotsEditable) return
     const current = character[action] as number
-    onActionChange(action, current === index + 1 ? index : index + 1)
+    const next = current === index + 1 ? index : index + 1
+    // Can't raise an action past the cap (4 needs Mastery); lowering is fine.
+    if (next > current && next > actionMax) return
+    onActionChange(action, next)
   }
 
   function handleXPClick(attribute: AttributeName, index: number) {
@@ -59,7 +72,7 @@ export function ActionRatings({ character, onActionChange, onUpdate, readonly, i
   // Advance: +1 to the chosen action and reset that attribute's xp to 0, in one update.
   function applyAdvance(attribute: AttributeName, action: ActionName) {
     const current = character[action] as number
-    if (current >= ACTION_MAX) return
+    if (current >= actionMax) return
     onUpdate({
       [action]: current + 1,
       [ATTRIBUTE_XP_FIELD[attribute]]: 0,
@@ -74,7 +87,7 @@ export function ActionRatings({ character, onActionChange, onUpdate, readonly, i
           const attrRating = actions.filter((a) => (character[a] as number) > 0).length
           const xp = character[ATTRIBUTE_XP_FIELD[attribute]] as number
           const xpFull = xp >= ATTRIBUTE_XP_MAX
-          const advanceableActions = actions.filter((a) => (character[a] as number) < ACTION_MAX)
+          const advanceableActions = actions.filter((a) => (character[a] as number) < actionMax)
           const isOpen = advancing === attribute
           return (
             <div key={attribute} className="space-y-1">
@@ -162,20 +175,28 @@ export function ActionRatings({ character, onActionChange, onUpdate, readonly, i
                 return (
                   <div key={action} className="flex items-center gap-2">
                     <div className="flex gap-0.5">
-                      {Array.from({ length: ACTION_MAX }).map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => handleDotClick(action, i)}
-                          disabled={!dotsEditable}
-                          className={cn(
-                            'h-4 w-4 rounded-full border-2 transition-colors',
-                            i < value
-                              ? 'border-foreground bg-foreground'
-                              : 'border-muted-foreground/50 bg-muted',
-                            dotsEditable && 'cursor-pointer hover:border-foreground/70',
-                          )}
-                        />
-                      ))}
+                      {Array.from({ length: ACTION_MAX }).map((_, i) => {
+                        const filled = i < value
+                        // The 4th dot is locked unless the crew has Mastery.
+                        const masteryLocked = i + 1 > actionMax && !filled
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => handleDotClick(action, i)}
+                            disabled={!dotsEditable || masteryLocked}
+                            title={masteryLocked ? 'Requires the crew’s Mastery upgrade to raise an action to 4.' : undefined}
+                            className={cn(
+                              'h-4 w-4 rounded-full border-2 transition-colors',
+                              filled
+                                ? 'border-foreground bg-foreground'
+                                : masteryLocked
+                                  ? 'border-dashed border-muted-foreground/40 bg-transparent'
+                                  : 'border-muted-foreground/50 bg-muted',
+                              dotsEditable && !masteryLocked && 'cursor-pointer hover:border-foreground/70',
+                            )}
+                          />
+                        )
+                      })}
                     </div>
                     <span className="text-sm capitalize">{action}</span>
                   </div>

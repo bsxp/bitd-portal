@@ -213,8 +213,8 @@ export function ScorePanel({ isGM }: { isGM: boolean }) {
           </CardHeader>
           <CardContent className="space-y-2">
             {characters.map((c) => (
-              <div key={c.id} className="flex items-center gap-3">
-                <span className="w-32 shrink-0 truncate text-sm font-medium">{c.name}</span>
+              <div key={c.id} className="flex flex-wrap items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">{c.name}</span>
                 <div className="flex gap-1.5">
                   {(['light', 'normal', 'heavy'] as const).map((lvl) => (
                     <button

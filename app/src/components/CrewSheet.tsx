@@ -256,7 +256,7 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
         <Card>
           <CardContent className="space-y-4 pt-4">
             {/* Tier & Hold */}
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
               <div>
                 <InfoLabel label="Tier" tip="Crew power level. Determines quality of equipment, cohorts, and the scale of your operations." />
                 <div className="mt-1 flex gap-1">

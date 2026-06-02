@@ -115,8 +115,8 @@ export function FactionTracker({ factions, onUpdate, onAdd, onDelete, readonly }
             <div className="space-y-2">
               {categoryFactions.map((faction) => (
                 <div key={faction.id} className="rounded-md border">
-                  <div className="flex items-center gap-3 p-2">
-                    <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2 p-2">
+                    <div className="min-w-[10rem] flex-1">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => toggleNotes(faction.id)}

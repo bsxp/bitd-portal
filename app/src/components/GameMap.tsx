@@ -680,6 +680,9 @@ export function GameMap({ isGM }: { isGM: boolean }) {
               className={cn(
                 'absolute flex flex-col items-center',
                 drag?.id === token.id ? 'z-50 cursor-grabbing' : 'cursor-grab',
+                // In draw/ping mode chips are click-through so strokes/pings can
+                // start anywhere, even on top of a chip.
+                tool !== 'move' && 'pointer-events-none',
               )}
               style={{
                 left: `${token.x}%`,

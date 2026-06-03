@@ -102,7 +102,7 @@ export const PLAYBOOK_ABILITIES: Record<Playbook, SpecialAbility[]> = {
     { name: 'Expertise', description: 'Choose one of your action ratings. When you lead a group action using that action, you can suffer only 1 stress at most, regardless of the number of failed rolls.' },
     { name: 'Ghost Veil', description: 'You may expend your special armor to resist a consequence of detection or to push yourself for a feat of stealth or athletics.' },
     { name: 'Reflexes', description: 'When there\'s a question about who acts first, the answer is you.' },
-    { name: 'Shadow', description: 'You may expend your special armor to resist a consequence from detection or to push yourself when you contort to avoid detection.' },
+    { name: 'Shadow', description: 'You may expend your special armor to resist a consequence from detection or security measures, or to push yourself for a feat of athletics or stealth.' },
     { name: 'Veteran', description: 'Choose a special ability from another source.' },
   ],
   slide: [

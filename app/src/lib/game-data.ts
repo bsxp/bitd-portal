@@ -175,11 +175,10 @@ export const PLAYBOOK_CONTACTS: Record<Playbook, string[]> = {
   ],
   slide: [
     'Bryl, a drug dealer',
-    'Liane, a high society contact',
-    'Hutton, a city clerk',
-    'Mateu, a steward',
-    'Cyrene, a courtesan',
-    'Inspector Lauria, a police inspector',
+    'Bazso Baz, a gang leader',
+    'Klyra, a tavern owner',
+    'Nyryx, a prostitute',
+    'Harker, a jail-bird',
   ],
   spider: [
     'Lydra, a deal broker',

@@ -81,6 +81,19 @@ export async function saveEntities(table: EntityTable, campaignId: string, entit
   if (error) throw error
 }
 
+// Concurrent-safe partial write: shallow-merges `patch` into the row's `data`
+// jsonb server-side (top-level keys win) via the bitd.merge_entity RPC. Unlike
+// saveEntity, two clients editing different fields of the same entity won't
+// clobber each other, because neither sends the whole (possibly stale) object.
+export async function mergeEntity(
+  table: EntityTable, campaignId: string, id: string, patch: Record<string, unknown>,
+): Promise<void> {
+  const { error } = await supabase.rpc('merge_entity', {
+    p_table: table, p_id: id, p_campaign: campaignId, p_patch: patch,
+  })
+  if (error) throw error
+}
+
 export async function deleteEntity(table: EntityTable, id: string): Promise<void> {
   const { error } = await supabase.from(table).delete().eq('id', id)
   if (error) throw error
@@ -89,6 +102,20 @@ export async function deleteEntity(table: EntityTable, id: string): Promise<void
 export async function setCampaignMap(campaignId: string, url: string | null): Promise<void> {
   const { error } = await supabase.from('campaigns').update({ map_image_url: url }).eq('id', campaignId)
   if (error) throw error
+}
+
+// Upload a custom map image to the shared `maps` storage bucket and return its
+// public URL. Previously the app used URL.createObjectURL(), a blob: URL only
+// valid in the uploader's own tab — so other players (and the uploader after a
+// reload) saw a broken image. A real uploaded URL is sharable and persistent.
+export async function uploadMapImage(campaignId: string, file: File): Promise<string> {
+  const ext = file.name.includes('.') ? file.name.split('.').pop() : 'png'
+  const path = `${campaignId}/${crypto.randomUUID()}.${ext}`
+  const { error } = await supabase.storage
+    .from('maps')
+    .upload(path, file, { contentType: file.type || 'image/png', upsert: true })
+  if (error) throw error
+  return supabase.storage.from('maps').getPublicUrl(path).data.publicUrl
 }
 
 // Push a fresh demo dataset into a campaign. Used the first time a campaign

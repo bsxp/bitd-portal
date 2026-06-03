@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useGame } from '@/lib/store'
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
+import { uploadMapImage } from '@/lib/db'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -83,6 +84,7 @@ export function GameMap({ isGM }: { isGM: boolean }) {
   } | null>(null)
   const [panel, setPanel] = useState(true)
   const [mapPicker, setMapPicker] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [adding, setAdding] = useState(false)
   const [newLabel, setNewLabel] = useState('')
   const [newColor, setNewColor] = useState(TOKEN_PALETTE[0])
@@ -267,9 +269,22 @@ export function GameMap({ isGM }: { isGM: boolean }) {
     setSurface({ width: img.naturalWidth, height: img.naturalHeight })
   }
 
-  function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (file) setMapImage(URL.createObjectURL(file))
+    e.target.value = '' // allow re-selecting the same file later
+    if (!file) return
+    // Upload to the shared `maps` bucket and broadcast/persist its public URL,
+    // so every player (and this browser after a reload) actually loads the same
+    // image. A local blob: URL would only render in the uploader's own tab.
+    setUploading(true)
+    try {
+      const url = await uploadMapImage(campaignId, file)
+      setMapImage(url)
+    } catch (err) {
+      console.error('[bitd map upload]', err)
+    } finally {
+      setUploading(false)
+    }
   }
 
   function dropPing(pct: Pt) {
@@ -503,11 +518,12 @@ export function GameMap({ isGM }: { isGM: boolean }) {
               ))}
               <div className="my-1 h-px bg-border" />
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent/50"
-                onClick={() => { fileInputRef.current?.click(); setMapPicker(false) }}
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent/50 disabled:opacity-60"
+                disabled={uploading}
+                onClick={() => { fileInputRef.current?.click() }}
               >
                 <Upload className="h-3 w-3" />
-                Upload custom image...
+                {uploading ? 'Uploading…' : 'Upload custom image...'}
               </button>
             </div>
           )}

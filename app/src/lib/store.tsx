@@ -2,10 +2,11 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef, ty
 import type { Character, Crew, Clock, Faction, CampaignRole, MapToken, Score } from './types'
 import { supabase } from './supabase'
 import {
-  loadOrSeedCampaign, getCampaign,
-  saveEntity, saveEntities, deleteEntity, setCampaignMap,
+  loadOrSeedCampaign, loadCampaignData, getCampaign,
+  saveEntity, saveEntities, mergeEntity, deleteEntity, setCampaignMap,
 } from './db'
 import type { Seat } from './session'
+import type { CampaignData } from './demo-data'
 import { Toaster, type ToastItem } from '@/components/Toaster'
 
 // ── Shared game state ──
@@ -32,6 +33,21 @@ interface PutPayload {
 interface RemovePayload {
   clockIds?: string[]
   factionIds?: string[]
+}
+
+// A single-entity, single-field-set update. Broadcast for live edits so peers
+// merge only the changed keys (see applyPatch) and persisted via the
+// merge_entity RPC so the database row is merged, not overwritten.
+type EntityKind = 'character' | 'crew' | 'clock' | 'faction' | 'score'
+interface PatchPayload {
+  entity?: EntityKind
+  id?: string
+  patch?: Record<string, unknown>
+}
+
+// Maps a patchable entity kind to its backing jsonb table for merge_entity.
+const PATCH_TABLE: Record<EntityKind, 'characters' | 'crews' | 'clocks' | 'factions' | 'scores'> = {
+  character: 'characters', crew: 'crews', clock: 'clocks', faction: 'factions', score: 'scores',
 }
 
 type ToastInput = Omit<ToastItem, 'id'>
@@ -277,12 +293,90 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
     if (p.factionIds) setFactions((prev) => prev.filter((f) => !p.factionIds!.includes(f.id)))
   }, [])
 
-  const applyAction = useCallback((action: string, p: PutPayload & RemovePayload) => {
+  // Field-level merge of a partial update into a single entity by id. Used for
+  // both our own edits and incoming peer 'patch' ops, so two clients changing
+  // different fields of the same entity don't clobber one another.
+  const applyPatch = useCallback((entity: EntityKind, id: string, patch: Record<string, unknown>) => {
+    switch (entity) {
+      case 'character': setCharacters((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c))); break
+      case 'crew': setCrew((prev) => (prev && prev.id === id ? { ...prev, ...patch } : prev)); break
+      case 'clock': setClocks((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c))); break
+      case 'faction': setFactions((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f))); break
+      case 'score': setCurrentScore((prev) => (prev && prev.id === id ? { ...prev, ...patch } : prev)); break
+    }
+  }, [])
+
+  const applyAction = useCallback((action: string, p: PutPayload & RemovePayload & PatchPayload) => {
     if (action === 'put') applyPut(p)
     else if (action === 'remove') applyRemove(p)
-  }, [applyPut, applyRemove])
+    else if (action === 'patch' && p.entity && p.id) applyPatch(p.entity, p.id, p.patch ?? {})
+  }, [applyPut, applyRemove, applyPatch])
 
-  const broadcast = useCallback((action: string, p: PutPayload | RemovePayload) => {
+  // ── Durable backstop: apply Postgres row changes (postgres_changes) ──
+  // Broadcasts give instant peer sync but are fire-and-forget — anything sent
+  // while a client is briefly disconnected is lost. Subscribing to the DB
+  // changefeed means every committed write reaches every client even if its
+  // broadcast was missed, so clients converge instead of silently diverging.
+  // Per-id updated_at guard drops stale echoes so a late older row can't revert
+  // a newer applied one. These are silent (no toasts — broadcasts handle those).
+  const lastSeenRef = useRef<Record<string, string>>({})
+  type ServerTable = 'characters' | 'crews' | 'clocks' | 'factions' | 'scores' | 'map_tokens'
+
+  const upsertServerEntity = useCallback((table: ServerTable, data: { id: string; status?: string }, updatedAt?: string) => {
+    const id = data?.id
+    if (id && updatedAt) {
+      const seen = lastSeenRef.current[id]
+      if (seen && updatedAt < seen) return // strictly older echo — ignore
+      lastSeenRef.current[id] = updatedAt
+    }
+    switch (table) {
+      case 'characters': setCharacters((prev) => upsertMany(prev, [data as unknown as Character])); break
+      case 'crews': setCrew(data as unknown as Crew); break
+      case 'clocks': setClocks((prev) => upsertMany(prev, [data as unknown as Clock])); break
+      case 'factions': setFactions((prev) => upsertMany(prev, [data as unknown as Faction])); break
+      case 'map_tokens': setMapTokens((prev) => upsertMany(prev, [data as unknown as MapToken])); break
+      case 'scores': {
+        const s = data as unknown as Score
+        if (s.status === 'completed') {
+          setScoreHistory((prev) => [s, ...prev.filter((x) => x.id !== s.id)])
+          setCurrentScore((prev) => (prev && prev.id === s.id ? null : prev))
+        } else {
+          setCurrentScore(s)
+          setScoreHistory((prev) => prev.filter((x) => x.id !== s.id))
+        }
+        break
+      }
+    }
+  }, [])
+
+  const removeServerEntity = useCallback((table: ServerTable, id: string) => {
+    switch (table) {
+      case 'characters': setCharacters((prev) => prev.filter((c) => c.id !== id)); break
+      case 'crews': setCrew((prev) => (prev && prev.id === id ? null : prev)); break
+      case 'clocks': setClocks((prev) => prev.filter((c) => c.id !== id)); break
+      case 'factions': setFactions((prev) => prev.filter((f) => f.id !== id)); break
+      case 'map_tokens': setMapTokens((prev) => prev.filter((t) => t.id !== id)); break
+      case 'scores':
+        setCurrentScore((prev) => (prev && prev.id === id ? null : prev))
+        setScoreHistory((prev) => prev.filter((s) => s.id !== id))
+        break
+    }
+  }, [])
+
+  // Replace all local state from a freshly-fetched snapshot. Used for the
+  // initial load and for the resync after a realtime reconnection.
+  const hydrate = useCallback((data: CampaignData) => {
+    setCharacters(data.characters)
+    setCrew(data.crew)
+    setClocks(data.clocks)
+    setFactions(data.factions)
+    setCurrentScore(data.currentScore)
+    setScoreHistory(data.scoreHistory)
+    setMapTokens(data.mapTokens)
+    setActiveCharacter((prev) => prev ?? data.characters[0]?.id ?? null)
+  }, [])
+
+  const broadcast = useCallback((action: string, p: PutPayload | RemovePayload | PatchPayload) => {
     try {
       channelRef.current?.send({
         type: 'broadcast',
@@ -300,30 +394,32 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
   const persistFactions = useCallback((fs: Faction[]) => { saveEntities('factions', campaignId, fs).catch(onErr) }, [campaignId])
   const persistScore = useCallback((s: Score) => { saveEntity('scores', campaignId, s).catch(onErr) }, [campaignId])
 
+  // Apply a single-field-set update locally, broadcast it to peers as a 'patch'
+  // (they merge only these keys), and persist it via the merge_entity RPC so the
+  // database row is field-merged rather than overwritten. This is the
+  // concurrent-safe path used by all the live per-entity edits below.
+  const commitPatch = useCallback((entity: EntityKind, id: string, patch: Record<string, unknown>) => {
+    applyPatch(entity, id, patch)
+    broadcast('patch', { entity, id, patch })
+    mergeEntity(PATCH_TABLE[entity], campaignId, id, patch).catch(onErr)
+  }, [applyPatch, broadcast, campaignId])
+
   // ── Public mutators ──
   const updateCharacter = useCallback((id: string, updates: Partial<Character>) => {
-    const cur = stateRef.current.characters.find((c) => c.id === id)
-    if (!cur) return
-    const next = { ...cur, ...updates }
-    const p = { characters: [next] }
-    applyPut(p); broadcast('put', p); persistChars([next])
-  }, [applyPut, broadcast, persistChars])
+    if (!stateRef.current.characters.some((c) => c.id === id)) return
+    commitPatch('character', id, updates as Record<string, unknown>)
+  }, [commitPatch])
 
   const updateCrew = useCallback((updates: Partial<Crew>) => {
     const cur = stateRef.current.crew
     if (!cur) return
-    const next = { ...cur, ...updates }
-    const p = { crew: next }
-    applyPut(p); broadcast('put', p); persistCrew(next)
-  }, [applyPut, broadcast, persistCrew])
+    commitPatch('crew', cur.id, updates as Record<string, unknown>)
+  }, [commitPatch])
 
   const updateClock = useCallback((id: string, updates: Partial<Clock>) => {
-    const cur = stateRef.current.clocks.find((c) => c.id === id)
-    if (!cur) return
-    const next = { ...cur, ...updates }
-    const p = { clocks: [next] }
-    applyPut(p); broadcast('put', p); persistClocks([next])
-  }, [applyPut, broadcast, persistClocks])
+    if (!stateRef.current.clocks.some((c) => c.id === id)) return
+    commitPatch('clock', id, updates as Record<string, unknown>)
+  }, [commitPatch])
 
   const addClock = useCallback((clock: Clock) => {
     const p = { clocks: [clock] }
@@ -336,12 +432,9 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
   }, [applyRemove, broadcast])
 
   const updateFaction = useCallback((id: string, updates: Partial<Faction>) => {
-    const cur = stateRef.current.factions.find((f) => f.id === id)
-    if (!cur) return
-    const next = { ...cur, ...updates }
-    const p = { factions: [next] }
-    applyPut(p); broadcast('put', p); persistFactions([next])
-  }, [applyPut, broadcast, persistFactions])
+    if (!stateRef.current.factions.some((f) => f.id === id)) return
+    commitPatch('faction', id, updates as Record<string, unknown>)
+  }, [commitPatch])
 
   const addFaction = useCallback((faction: Faction) => {
     const p = { factions: [faction] }
@@ -429,10 +522,8 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
   const updateScore = useCallback((updates: Partial<Score>) => {
     const cur = stateRef.current.currentScore
     if (!cur) return
-    const next = { ...cur, ...updates }
-    const p = { score: next }
-    applyPut(p); broadcast('put', p); persistScore(next)
-  }, [applyPut, broadcast, persistScore])
+    commitPatch('score', cur.id, updates as Record<string, unknown>)
+  }, [commitPatch])
 
   const wrapScore = useCallback(() => {
     const score = stateRef.current.currentScore
@@ -496,14 +587,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
     loadOrSeedCampaign(campaignId)
       .then((data) => {
         if (cancelled) return
-        setCharacters(data.characters)
-        setCrew(data.crew)
-        setClocks(data.clocks)
-        setFactions(data.factions)
-        setCurrentScore(data.currentScore)
-        setScoreHistory(data.scoreHistory)
-        setMapTokens(data.mapTokens)
-        setActiveCharacter((prev) => prev ?? data.characters[0]?.id ?? null)
+        hydrate(data)
         setLoading(false)
       })
       .catch((e) => {
@@ -516,10 +600,30 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
       .then((c) => { if (!cancelled && c) setMapImage(c.map_image_url) })
       .catch(() => { /* non-fatal */ })
     return () => { cancelled = true }
-  }, [campaignId])
+  }, [campaignId, hydrate])
 
-  // ── Realtime channel: peer ops + presence ──
+  // ── Realtime channel: peer broadcasts + presence + DB changefeed ──
+  // Three sync layers on one channel:
+  //  • broadcast 'op'  — instant, low-latency peer sync + toasts (fast path)
+  //  • postgres_changes — durable backstop so missed broadcasts still converge
+  //  • presence        — who's online
+  // On every (re)subscribe after the first we refetch a full snapshot, healing
+  // any gap from a dropped connection (postgres_changes only flows while joined).
   useEffect(() => {
+    let cancelled = false
+    let subscribedOnce = false
+    const ENTITY_TABLES: ServerTable[] = ['characters', 'crews', 'clocks', 'factions', 'scores', 'map_tokens']
+
+    const resync = () => {
+      Promise.all([loadCampaignData(campaignId), getCampaign(campaignId)])
+        .then(([data, camp]) => {
+          if (cancelled) return
+          hydrate(data)
+          if (camp) setMapImage(camp.map_image_url)
+        })
+        .catch((e) => console.error('[bitd resync]', e))
+    }
+
     let ch: ReturnType<typeof supabase.channel>
     try {
       ch = supabase.channel(`campaign:${campaignId}`, {
@@ -529,15 +633,53 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
 
       ch.on('broadcast', { event: 'op' }, ({ payload }) => {
         if (!payload || payload.sender === sessionId) return
-        const p = (payload.p ?? {}) as PutPayload & RemovePayload
+        const p = (payload.p ?? {}) as PutPayload & RemovePayload & PatchPayload
         // Toast incoming changes that affect the party or my own character.
+        const myCharId = seat.type === 'character' ? seat.id : null
         if (payload.action === 'put') {
-          const myCharId = seat.type === 'character' ? seat.id : null
           buildToasts(p, stateRef.current, myCharId).forEach(pushToast)
+        } else if (payload.action === 'patch' && p.entity && p.id) {
+          // Synthesize a put-shaped view of just this entity so the existing
+          // toast logic (which diffs whole crew/character objects) still works.
+          const synth: PutPayload = {}
+          if (p.entity === 'crew' && stateRef.current.crew) {
+            synth.crew = { ...stateRef.current.crew, ...p.patch }
+          } else if (p.entity === 'character') {
+            const cur = stateRef.current.characters.find((c) => c.id === p.id)
+            if (cur) synth.characters = [{ ...cur, ...p.patch }]
+          }
+          buildToasts(synth, stateRef.current, myCharId).forEach(pushToast)
         }
         applyAction(payload.action as string, p)
       })
-        .on('presence', { event: 'sync' }, () => {
+
+      // DB changefeed for every campaign-scoped entity table.
+      for (const table of ENTITY_TABLES) {
+        ch.on(
+          'postgres_changes',
+          { event: '*', schema: 'bitd', table, filter: `campaign_id=eq.${campaignId}` },
+          (payload: { eventType: string; new?: Record<string, unknown>; old?: Record<string, unknown> }) => {
+            if (payload.eventType === 'DELETE') {
+              const id = payload.old?.id as string | undefined
+              if (id) removeServerEntity(table, id)
+            } else {
+              const row = payload.new
+              const data = row?.data as { id: string; status?: string } | undefined
+              if (data?.id) upsertServerEntity(table, data, row?.updated_at as string | undefined)
+            }
+          },
+        )
+      }
+      // Campaign row carries the shared map image URL.
+      ch.on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'bitd', table: 'campaigns', filter: `id=eq.${campaignId}` },
+        (payload: { new?: Record<string, unknown> }) => {
+          setMapImage((payload.new?.map_image_url as string | null) ?? null)
+        },
+      )
+
+      ch.on('presence', { event: 'sync' }, () => {
           const state = ch.presenceState() as Record<string, Array<{ seat: string; name: string; sessionId: string }>>
           const players = Object.values(state).flat().map((m) => ({ seat: m.seat, name: m.name, sessionId: m.sessionId }))
           setOnlinePlayers(players)
@@ -547,13 +689,17 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
             try {
               ch.track({ seat: seatKey(seat), name: seat.name, sessionId })
             } catch { /* ignore */ }
+            // First join is covered by the initial load effect; later rejoins
+            // (after a dropped socket) need a snapshot refetch to fill the gap.
+            if (subscribedOnce) resync()
+            subscribedOnce = true
           }
         })
-      return () => { ch.unsubscribe() }
+      return () => { cancelled = true; ch.unsubscribe() }
     } catch {
-      return () => { /* realtime unavailable */ }
+      return () => { cancelled = true /* realtime unavailable */ }
     }
-  }, [campaignId, sessionId, seat, applyAction, pushToast])
+  }, [campaignId, sessionId, seat, applyAction, pushToast, hydrate, upsertServerEntity, removeServerEntity])
 
   return (
     <GameContext.Provider

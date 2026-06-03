@@ -328,7 +328,7 @@ function CharacterCard({
 
   return (
     <Card
-      className="cursor-pointer transition-shadow hover:shadow-md"
+      className="flex h-full cursor-pointer flex-col transition-shadow hover:shadow-md"
       onClick={onClick}
     >
       <CardHeader className="pb-2">
@@ -346,7 +346,7 @@ function CharacterCard({
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="flex flex-1 flex-col gap-3">
         {/* Stress */}
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground">Stress</span>
@@ -376,7 +376,7 @@ function CharacterCard({
           </div>
         )}
 
-        <Separator />
+        <Separator className="mt-auto" />
 
         {/* Bottom row: healing, armor, coin */}
         <div className="flex items-center justify-between">

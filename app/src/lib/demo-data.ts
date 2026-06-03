@@ -197,24 +197,9 @@ export function makeDemoData(campaignId: string): CampaignData {
     makeFaction(campaignId, 'Inspectors'),
   ].filter((f): f is Faction => f !== null)
 
-  const currentScore: Score = {
-    id: crypto.randomUUID(),
-    campaign_id: campaignId,
-    title: 'The Brightstone Job',
-    target: "Lord Strangford's manor — steal the Tycherosi heirloom",
-    plan_type: 'Stealth',
-    plan_detail: "Servants' entrance during the masquerade ball",
-    position: 'risky',
-    status: 'active',
-    outcome: null,
-    payoff_coin: 0,
-    rep_gained: 0,
-    heat_gained: 0,
-    notes: null,
-    outcome_notes: null,
-    completed_at: null,
-    created_at: new Date().toISOString(),
-  }
+  // No default active score — the crew starts with a clean slate and the GM
+  // begins a score when they're ready.
+  const currentScore: Score | null = null
 
   const scoreHistory: Score[] = [
     {

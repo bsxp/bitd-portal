@@ -794,9 +794,12 @@ export function GameMap({ isGM }: { isGM: boolean }) {
         </div>
       )}
 
-      {/* Token panel */}
+      {/* Token panel — upper right (below the GM's Change Map button when present) */}
       <div
-        className="absolute bottom-2 right-2 z-10 w-48 rounded-lg border bg-background/90 backdrop-blur"
+        className={cn(
+          'absolute right-2 z-10 w-48 rounded-lg border bg-background/90 backdrop-blur',
+          isGM ? 'top-14' : 'top-2',
+        )}
         onPointerDown={e => e.stopPropagation()}
       >
         <button

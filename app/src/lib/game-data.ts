@@ -139,6 +139,66 @@ export const PLAYBOOK_ABILITIES: Record<Playbook, SpecialAbility[]> = {
   ],
 }
 
+// Each playbook's "Shady Friends" — the NPC contacts you pick a friend (and
+// rivals) from during character creation. Names match the BitD playbook sheets.
+export const PLAYBOOK_CONTACTS: Record<Playbook, string[]> = {
+  cutter: [
+    'Marlane, a pugilist',
+    'Chael, a vicious thug',
+    'Mylera, a hostess at the Red Lamp',
+    'Veleris, a vicious noble',
+    'Grace, a sharp-eyed beggar',
+    'Sether, a torturer',
+  ],
+  hound: [
+    'Bricks, a Skovlander gang leader',
+    'Sora, a bounty hunter',
+    'Roalan, an Iruvian arms dealer',
+    'Casta, a physicker',
+    'Marla, a fence',
+    'Vencel, a hunting guide',
+  ],
+  leech: [
+    'Stamtitz, a teacher of the wreck arts',
+    'Roslyn, an alchemist',
+    'Vextic, a strange scholar',
+    'Malista, a priestess of the Ecstatic Flame',
+    'Adicus Sant, a doctor',
+    'Nestor, a corpse thief',
+  ],
+  lurk: [
+    'Telda, a beggar',
+    'Darmot, a bluecoat',
+    'Frake, a locksmith',
+    'Roslyn Kellis, a noble',
+    'Petra, a city clerk',
+  ],
+  slide: [
+    'Bryl, a drug dealer',
+    'Liane, a high society contact',
+    'Hutton, a city clerk',
+    'Mateu, a steward',
+    'Cyrene, a courtesan',
+    'Inspector Lauria, a police inspector',
+  ],
+  spider: [
+    'Lydra, a deal broker',
+    'Severos, a tavern owner',
+    'Bell, an apothecary',
+    'Eckerd, a spy',
+    'Vond, an assassin',
+    'Hutton, a city clerk',
+  ],
+  whisper: [
+    'Quellyn, a fellow whisper',
+    'Mateu, a student of the arcane',
+    'Veleris, a vampire',
+    'Roethe, an artifact collector',
+    'Drysin, an arcane researcher',
+    'Andrel, a sculptor',
+  ],
+}
+
 export const CREW_ABILITIES: Record<CrewType, SpecialAbility[]> = {
   assassins: [
     { name: 'Predators', description: 'When you Gather Info to locate a target or plan an ambush, you get +1 effect.' },

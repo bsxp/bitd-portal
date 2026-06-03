@@ -3,13 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import { ArrowLeft, Loader2, Plus, Minus } from 'lucide-react'
+import { ArrowLeft, Loader2, Plus, Minus, X } from 'lucide-react'
 import { saveEntity } from '@/lib/db'
-import { PLAYBOOK_ABILITIES } from '@/lib/game-data'
+import { PLAYBOOK_ABILITIES, PLAYBOOK_CONTACTS } from '@/lib/game-data'
 import {
   ACTION_RATINGS, HERITAGE_OPTIONS, BACKGROUND_OPTIONS, VICE_OPTIONS,
-  type Playbook, type ActionName, type Character,
+  type Playbook, type ActionName, type Character, type CharacterContact,
 } from '@/lib/types'
+
+type Relationship = CharacterContact['relationship'] // 'friend' | 'rival' | 'other'
+// `custom` marks a contact the user added by hand. Playbook-seeded contacts are
+// not custom, and can't be removed (only their friend/rival relationship set).
+interface ContactDraft { name: string; relationship: Relationship; custom?: boolean }
 
 const PLAYBOOKS: { id: Playbook; blurb: string }[] = [
   { id: 'cutter', blurb: 'A dangerous & intimidating fighter' },
@@ -53,7 +58,16 @@ export function CharacterCreate({ campaignId, onCancel, onCreated }: Props) {
   const [playbook, setPlaybook] = useState<Playbook | ''>('')
   const [actions, setActions] = useState<Record<string, number>>({})
   const [abilities, setAbilities] = useState<string[]>([])
+  const [contacts, setContacts] = useState<ContactDraft[]>([])
+  const [newContact, setNewContact] = useState('')
   const [notes, setNotes] = useState('')
+
+  // Picking a playbook seeds its "Shady Friends" list (all neutral to start);
+  // the contact list is playbook-specific so it re-seeds on change.
+  function selectPlaybook(p: Playbook) {
+    setPlaybook(p)
+    setContacts(PLAYBOOK_CONTACTS[p].map((name) => ({ name, relationship: 'other' as Relationship })))
+  }
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -71,6 +85,20 @@ export function CharacterCreate({ campaignId, onCancel, onCreated }: Props) {
 
   function toggleAbility(name: string) {
     setAbilities((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]))
+  }
+
+  // Click a relationship to set it; click the active one again to clear it.
+  function setRelationship(i: number, rel: Relationship) {
+    setContacts((prev) => prev.map((c, idx) => (idx === i ? { ...c, relationship: c.relationship === rel ? 'other' : rel } : c)))
+  }
+  function removeContact(i: number) {
+    setContacts((prev) => prev.filter((_, idx) => idx !== i))
+  }
+  function addContact() {
+    const name = newContact.trim()
+    if (!name) return
+    setContacts((prev) => [...prev, { name, relationship: 'friend', custom: true }])
+    setNewContact('')
   }
 
   async function submit() {
@@ -122,7 +150,9 @@ export function CharacterCreate({ campaignId, onCancel, onCreated }: Props) {
       items_carried: [],
       special_abilities: abilities,
       ability_details: {},
-      contacts: [],
+      contacts: contacts
+        .filter((c) => c.name.trim())
+        .map((c) => ({ name: c.name.trim(), relationship: c.relationship, description: null })),
       notes: notes.trim() || null,
     }
 
@@ -171,7 +201,7 @@ export function CharacterCreate({ campaignId, onCancel, onCreated }: Props) {
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => setPlaybook(p.id)}
+                  onClick={() => selectPlaybook(p.id)}
                   title={p.blurb}
                   className={cn(
                     'rounded-md border-2 px-2 py-1.5 text-sm font-semibold uppercase tracking-wide transition-colors',
@@ -267,6 +297,51 @@ export function CharacterCreate({ campaignId, onCancel, onCreated }: Props) {
                     </button>
                   )
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* Friends & Rivals (Shady Friends) */}
+          {playbook && (
+            <div className="space-y-2">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Friends &amp; rivals</div>
+              <div className="space-y-1">
+                {contacts.map((c, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="flex shrink-0 overflow-hidden rounded-md border">
+                      <button
+                        type="button"
+                        onClick={() => setRelationship(i, 'friend')}
+                        className={cn('px-2 py-1 text-xs font-semibold', c.relationship === 'friend' ? 'bg-green-500/80 text-white' : 'text-green-500 hover:bg-green-500/10')}
+                      >Friend</button>
+                      <button
+                        type="button"
+                        onClick={() => setRelationship(i, 'rival')}
+                        className={cn('border-l px-2 py-1 text-xs font-semibold', c.relationship === 'rival' ? 'bg-red-500/80 text-white' : 'text-red-500 hover:bg-red-500/10')}
+                      >Rival</button>
+                    </div>
+                    <span className="flex-1 truncate text-sm">{c.name}</span>
+                    {c.custom ? (
+                      <button type="button" onClick={() => removeContact(i)} className="shrink-0 text-muted-foreground hover:text-destructive">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    ) : (
+                      <span className="w-3.5 shrink-0" />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={newContact}
+                  onChange={(e) => setNewContact(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addContact() } }}
+                  placeholder="Add a contact (e.g. Petra, a city clerk)"
+                  className="h-8 text-xs"
+                />
+                <Button type="button" variant="outline" size="sm" className="h-8 shrink-0" onClick={addContact}>
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </div>
           )}

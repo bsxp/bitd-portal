@@ -100,7 +100,7 @@ export const PLAYBOOK_ABILITIES: Record<Playbook, SpecialAbility[]> = {
     { name: 'Daredevil', description: 'When you roll a desperate action, you get +1d to your roll if you also take -1d to any resistance rolls against consequences from your action.' },
     { name: 'The Devil\'s Footsteps', description: 'When you push yourself, choose one of the following additional benefits: perform a feat of athletics that verges on the superhuman — maneuver to confuse your enemies so they mistakenly attack each other.' },
     { name: 'Expertise', description: 'Choose one of your action ratings. When you lead a group action using that action, you can suffer only 1 stress at most, regardless of the number of failed rolls.' },
-    { name: 'Ghost Veil', description: 'You may expend your special armor to resist a consequence of detection or to push yourself for a feat of stealth or athletics.' },
+    { name: 'Ghost Veil', description: 'You may shift partially into the ghost field, becoming shadowy and insubstantial for a few moments. Take 2 stress when you shift, plus 1 stress for each extra feature: it lasts a few minutes rather than moments — you are invisible rather than shadowy — you may float through the air like a ghost.' },
     { name: 'Reflexes', description: 'When there\'s a question about who acts first, the answer is you.' },
     { name: 'Shadow', description: 'You may expend your special armor to resist a consequence from detection or security measures, or to push yourself for a feat of athletics or stealth.' },
     { name: 'Veteran', description: 'Choose a special ability from another source.' },

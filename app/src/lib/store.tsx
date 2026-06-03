@@ -33,6 +33,7 @@ interface PutPayload {
 interface RemovePayload {
   clockIds?: string[]
   factionIds?: string[]
+  characterIds?: string[]
 }
 
 // A single-entity, single-field-set update. Broadcast for live edits so peers
@@ -145,6 +146,7 @@ interface GameActions {
   addMapToken: (token: MapToken) => void
   removeMapToken: (id: string) => void
   commitMapToken: (id: string) => void
+  editMapToken: (id: string, updates: Partial<MapToken>) => void
   setMapImage: (url: string | null) => void
   endScore: () => void
   startScore: () => void
@@ -176,58 +178,6 @@ function resetForNewScore(c: Character): Character {
     armor_used: false,
     heavy_armor_used: false,
     special_armor_used: false,
-  }
-}
-
-// Fully blank a character for a "reset to setup". Keeps only the immutable
-// identity/ownership fields (id, campaign_id, user_id, crew_id, created_at) and
-// resets every other field to the makeCharacter defaults in demo-data.ts.
-function blankCharacter(c: Character): Character {
-  return {
-    id: c.id,
-    campaign_id: c.campaign_id,
-    user_id: c.user_id,
-    crew_id: c.crew_id,
-    created_at: c.created_at,
-    name: 'Unnamed',
-    alias: null,
-    look: null,
-    playbook: null,
-    heritage: null,
-    heritage_detail: null,
-    background: null,
-    background_detail: null,
-    vice: null,
-    vice_purveyor: null,
-    stress: 0,
-    trauma: [],
-    coin: 0,
-    stash: 0,
-    playbook_xp: 0,
-    insight_xp: 0,
-    prowess_xp: 0,
-    resolve_xp: 0,
-    hunt: 0, study: 0, survey: 0, tinker: 0,
-    finesse: 0, prowl: 0, skirmish: 0, wreck: 0,
-    attune: 0, command: 0, consort: 0, sway: 0,
-    harm_level3: null,
-    harm_level2_a: null,
-    harm_level2_b: null,
-    harm_level1_a: null,
-    harm_level1_b: null,
-    healing_clock: 0,
-    armor_available: true,
-    heavy_armor_available: false,
-    special_armor_available: true,
-    armor_used: false,
-    heavy_armor_used: false,
-    special_armor_used: false,
-    load_level: null,
-    items_carried: [],
-    special_abilities: [],
-    ability_details: {},
-    contacts: [],
-    notes: null,
   }
 }
 
@@ -291,6 +241,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
   const applyRemove = useCallback((p: RemovePayload) => {
     if (p.clockIds) setClocks((prev) => prev.filter((c) => !p.clockIds!.includes(c.id)))
     if (p.factionIds) setFactions((prev) => prev.filter((f) => !p.factionIds!.includes(f.id)))
+    if (p.characterIds) setCharacters((prev) => prev.filter((c) => !p.characterIds!.includes(c.id)))
   }, [])
 
   // Field-level merge of a partial update into a single entity by id. Used for
@@ -467,6 +418,16 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
     if (t) saveEntity('map_tokens', campaignId, t).catch(onErr)
   }, [campaignId])
 
+  // Apply a label/color edit to a chip and persist it immediately (unlike the
+  // drag path, which persists only on pointer-up). Used by the chip editor.
+  const editMapToken = useCallback((id: string, updates: Partial<MapToken>) => {
+    const cur = stateRef.current.mapTokens.find((t) => t.id === id)
+    if (!cur) return
+    const next = { ...cur, ...updates }
+    setMapTokens((prev) => prev.map((t) => (t.id === id ? next : t)))
+    saveEntity('map_tokens', campaignId, next).catch(onErr)
+  }, [campaignId])
+
   const setMapImageSynced = useCallback((url: string | null) => {
     const p = { mapImageUrl: url }
     applyPut(p); broadcast('put', p); setCampaignMap(campaignId, url).catch(onErr)
@@ -564,20 +525,42 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
     if (score) deleteEntity('scores', score.id).catch(onErr)
   }, [applyPut, broadcast, persistChars, persistClocks])
 
-  // Full reset to setup (GM-only, destructive): blank every character back to
-  // makeCharacter defaults (keeping only id/campaign/user/crew/created_at) and
-  // flip the crew into Setup Mode so players can immediately rebuild. Clocks,
-  // scores, factions, crew sheet, and map tokens are intentionally untouched.
+  // Full reset to setup (GM-only, destructive): DELETE every character (players
+  // rebuild their own via the character creator) and reset the crew's
+  // progression (tier, rep, heat, wanted, coin, xp, abilities, upgrades, claims)
+  // back to a fresh setup, flipping Setup Mode on. The crew's identity (name,
+  // type, lair, hunting grounds, notes), clocks, scores, factions, and map are
+  // intentionally untouched.
   const resetGame = useCallback(() => {
-    const blankedChars = stateRef.current.characters.map(blankCharacter)
+    const ids = stateRef.current.characters.map((c) => c.id)
+    if (ids.length) {
+      const rem: RemovePayload = { characterIds: ids }
+      applyRemove(rem); broadcast('remove', rem)
+      ids.forEach((id) => deleteEntity('characters', id).catch(onErr))
+    }
+    setActiveCharacter(null)
+
     const crew = stateRef.current.crew
-    const nextCrew: Crew | null = crew ? { ...crew, setup_mode: true } : null
-    const p: PutPayload = { characters: blankedChars }
-    if (nextCrew) p.crew = nextCrew
-    applyPut(p); broadcast('put', p)
-    persistChars(blankedChars)
-    if (nextCrew) persistCrew(nextCrew)
-  }, [applyPut, broadcast, persistChars, persistCrew])
+    if (crew) {
+      const nextCrew: Crew = {
+        ...crew,
+        tier: 0,
+        hold: 'strong',
+        rep: 0,
+        heat: 0,
+        wanted_level: 0,
+        coin: 0,
+        vault_capacity: 4,
+        crew_xp: 0,
+        special_abilities: [],
+        upgrades: [],
+        claims_seized: [],
+        setup_mode: true,
+      }
+      const p: PutPayload = { crew: nextCrew }
+      applyPut(p); broadcast('put', p); persistCrew(nextCrew)
+    }
+  }, [applyRemove, applyPut, broadcast, persistCrew])
 
   // ── Load campaign data from Postgres ──
   useEffect(() => {
@@ -711,7 +694,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
         clocks, updateClock, addClock, deleteClock,
         factions, updateFaction, addFaction, deleteFaction,
         activeCharacterId, setActiveCharacter,
-        mapTokens, updateMapToken, addMapToken, removeMapToken, commitMapToken,
+        mapTokens, updateMapToken, addMapToken, removeMapToken, commitMapToken, editMapToken,
         mapImageUrl, setMapImage: setMapImageSynced,
         endScore,
         currentScore, scoreHistory, startScore, updateScore, wrapScore, abandonScore,

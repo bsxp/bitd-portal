@@ -6,8 +6,9 @@ import { useSession, type Seat } from '@/lib/session'
 import { loadOrSeedCampaign } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
-import { KeyRound, Shield, User, Loader2, ArrowLeft } from 'lucide-react'
+import { KeyRound, Shield, User, Loader2, ArrowLeft, UserPlus } from 'lucide-react'
 import type { Character } from '@/lib/types'
+import { CharacterCreate } from '@/components/CharacterCreate'
 
 export function LoginGate() {
   const { session } = useSession()
@@ -65,6 +66,7 @@ function CodeEntry() {
 function ClaimSeat() {
   const { session, sessionId, claimSeat, leaveCampaign } = useSession()
   const [characters, setCharacters] = useState<Character[] | null>(null)
+  const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // seat keys currently occupied by online players
   const [online, setOnline] = useState<Map<string, string>>(new Map())
@@ -102,6 +104,19 @@ function ClaimSeat() {
   function claim(seat: Seat, key: string) {
     if (online.has(key)) return // taken
     claimSeat(seat)
+  }
+
+  if (creating) {
+    return (
+      <CharacterCreate
+        campaignId={campaignId}
+        onCancel={() => setCreating(false)}
+        onCreated={(char) => {
+          setCharacters((prev) => [...(prev ?? []), char])
+          claimSeat({ type: 'character', id: char.id, name: char.name })
+        }}
+      />
+    )
   }
 
   const SeatRow = ({ seatKey, name, sub, icon, seat }: {
@@ -187,6 +202,16 @@ function ClaimSeat() {
               />
             ))
           )}
+
+          <button
+            onClick={() => setCreating(true)}
+            className="flex w-full items-center gap-3 rounded-lg border-2 border-dashed border-muted-foreground/30 px-4 py-3 text-left text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted-foreground/10">
+              <UserPlus className="h-4 w-4" />
+            </div>
+            <div className="font-medium">Create a character…</div>
+          </button>
         </CardContent>
       </Card>
     </div>

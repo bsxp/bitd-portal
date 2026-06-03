@@ -82,8 +82,6 @@ export interface CampaignData {
   mapTokens: MapToken[]
 }
 
-const TOKEN_COLORS = ['#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
-
 export function makeDemoData(campaignId: string): CampaignData {
   const characters: Character[] = [
     makeCharacter(campaignId, {
@@ -239,13 +237,8 @@ export function makeDemoData(campaignId: string): CampaignData {
     },
   ]
 
-  const mapTokens: MapToken[] = characters.map((c, i) => ({
-    id: crypto.randomUUID(),
-    label: c.alias || c.name,
-    color: TOKEN_COLORS[i % TOKEN_COLORS.length],
-    x: 30 + i * 20,
-    y: 70,
-  }))
+  // No default map chips — players/GM add their own via the map's Add Token.
+  const mapTokens: MapToken[] = []
 
   return { characters, crew, clocks, factions, currentScore, scoreHistory, mapTokens }
 }

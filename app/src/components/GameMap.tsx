@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useGame } from '@/lib/store'
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
@@ -17,7 +17,6 @@ const TOKEN_PALETTE = [
 const BUILT_IN_MAPS = [
   { id: 'doskvol-detailed', label: 'Doskvol (Detailed)', src: '/maps/doskvol-detailed.png' },
   { id: 'doskvol-labeled', label: 'Doskvol (Labeled)', src: '/maps/doskvol-labeled.png' },
-  { id: 'doskvol-clean', label: 'Continent', src: '/maps/doskvol-clean.png' },
 ]
 
 const DEFAULT_SURFACE = { width: 1200, height: 800 }
@@ -51,12 +50,19 @@ function CursorArrow({ color }: { color: string }) {
 
 export function GameMap({ isGM }: { isGM: boolean }) {
   const {
-    mapTokens, updateMapToken, addMapToken, removeMapToken, commitMapToken,
-    mapImageUrl, setMapImage, campaignId,
+    mapTokens, updateMapToken, addMapToken, removeMapToken, commitMapToken, editMapToken,
+    mapImageUrl, setMapImage, campaignId, onlinePlayers,
   } = useGame()
   const { session, sessionId } = useSession()
   const myName = session?.seat?.name ?? 'Player'
-  const myColor = colorFromId(sessionId)
+  // Give each online person a distinct cursor color: take a stable palette slot
+  // by this session's index among the (sorted) online session ids, so no two
+  // people collide. Falls back to a hash of the id before presence has synced.
+  const myColor = useMemo(() => {
+    const ids = [...new Set(onlinePlayers.map((p) => p.sessionId).filter(Boolean))].sort()
+    const idx = ids.indexOf(sessionId)
+    return idx >= 0 ? TOKEN_PALETTE[idx % TOKEN_PALETTE.length] : colorFromId(sessionId)
+  }, [onlinePlayers, sessionId])
 
   const containerRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -97,6 +103,12 @@ export function GameMap({ isGM }: { isGM: boolean }) {
   const [localCursor, setLocalCursor] = useState<Pt | null>(null)
   const [clock, setClock] = useState(0)
 
+  // Chip editor: the id of the chip whose rename/recolor/delete menu is open
+  // (opened by tapping a chip rather than dragging it), plus its draft label.
+  const [editing, setEditing] = useState<string | null>(null)
+  const [editLabel, setEditLabel] = useState('')
+  const dragMovedRef = useRef(false) // did the current token drag actually move?
+
   const cbRef = useRef({ updateMapToken, addMapToken, removeMapToken })
   useEffect(() => {
     cbRef.current = { updateMapToken, addMapToken, removeMapToken }
@@ -109,6 +121,9 @@ export function GameMap({ isGM }: { isGM: boolean }) {
       ch.on('broadcast', { event: 'token-move' }, ({ payload }) => {
         cbRef.current.updateMapToken(payload.id, { x: payload.x, y: payload.y })
       })
+        .on('broadcast', { event: 'token-update' }, ({ payload }) => {
+          cbRef.current.updateMapToken(payload.id, payload.updates)
+        })
         .on('broadcast', { event: 'token-add' }, ({ payload }) => {
           cbRef.current.addMapToken(payload)
         })
@@ -219,6 +234,26 @@ export function GameMap({ isGM }: { isGM: boolean }) {
     return () => cancelAnimationFrame(raf)
   }, [ephemeralActive])
 
+  // Keep current surface readable from stable callbacks (wheel handler, clamp).
+  const surfaceRef = useRef(surface)
+  useEffect(() => { surfaceRef.current = surface })
+
+  // Constrain pan/zoom so the map can't be moved out of the frame: when the
+  // scaled map is larger than the viewport its edges stay pinned to the frame
+  // edges; when smaller it stays centered. Prevents zooming/panning into empty
+  // space outside the map area.
+  const clampView = useCallback((v: { scale: number; x: number; y: number }) => {
+    const el = containerRef.current
+    if (!el) return v
+    const r = el.getBoundingClientRect()
+    const s = surfaceRef.current
+    const sw = s.width * v.scale
+    const sh = s.height * v.scale
+    const x = sw <= r.width ? (r.width - sw) / 2 : Math.min(0, Math.max(r.width - sw, v.x))
+    const y = sh <= r.height ? (r.height - sh) / 2 : Math.min(0, Math.max(r.height - sh, v.y))
+    return { scale: v.scale, x, y }
+  }, [])
+
   const fit = useCallback(() => {
     const el = containerRef.current
     if (!el) return
@@ -246,12 +281,12 @@ export function GameMap({ isGM }: { isGM: boolean }) {
       setView(v => {
         const ns = Math.max(0.05, Math.min(10, v.scale * f))
         const ratio = ns / v.scale
-        return { scale: ns, x: cx - (cx - v.x) * ratio, y: cy - (cy - v.y) * ratio }
+        return clampView({ scale: ns, x: cx - (cx - v.x) * ratio, y: cy - (cy - v.y) * ratio })
       })
     }
     el.addEventListener('wheel', handler, { passive: false })
     return () => el.removeEventListener('wheel', handler)
-  }, [])
+  }, [clampView])
 
   // Convert a screen point to map-surface percent coords (pan/zoom independent).
   function toPct(clientX: number, clientY: number): Pt {
@@ -312,6 +347,7 @@ export function GameMap({ isGM }: { isGM: boolean }) {
     if (tok) {
       const t = mapTokens.find(t => t.id === tok.dataset.tokenId)
       if (!t) return
+      dragMovedRef.current = false // distinguish a tap (open editor) from a drag (move)
       setDrag({ mode: 'token', id: t.id, sx: e.clientX, sy: e.clientY, tx: t.x, ty: t.y })
     } else {
       setDrag({ mode: 'pan', sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y })
@@ -342,12 +378,13 @@ export function GameMap({ isGM }: { isGM: boolean }) {
 
     if (!drag) return
     if (drag.mode === 'pan') {
-      setView(v => ({
+      setView(v => clampView({
         ...v,
         x: drag.vx! + e.clientX - drag.sx,
         y: drag.vy! + e.clientY - drag.sy,
       }))
     } else if (drag.id) {
+      if (Math.abs(e.clientX - drag.sx) > 4 || Math.abs(e.clientY - drag.sy) > 4) dragMovedRef.current = true
       const dx = (e.clientX - drag.sx) / view.scale / surface.width * 100
       const dy = (e.clientY - drag.sy) / view.scale / surface.height * 100
       const nx = Math.max(0, Math.min(100, drag.tx! + dx))
@@ -375,8 +412,17 @@ export function GameMap({ isGM }: { isGM: boolean }) {
     }
     if (drag?.mode === 'token' && drag.id) {
       const t = mapTokens.find(t => t.id === drag.id)
-      if (t) broadcast('token-move', { id: t.id, x: t.x, y: t.y })
-      commitMapToken(drag.id) // persist final position to Postgres
+      if (!dragMovedRef.current) {
+        // A tap (not a drag): open the rename/recolor/delete menu, if this
+        // viewer owns the chip or is the GM.
+        if (t && (isGM || t.owner === sessionId)) {
+          setEditing(t.id)
+          setEditLabel(t.label)
+        }
+      } else {
+        if (t) broadcast('token-move', { id: t.id, x: t.x, y: t.y })
+        commitMapToken(drag.id) // persist final position to Postgres
+      }
     }
     setDrag(null)
   }
@@ -400,7 +446,7 @@ export function GameMap({ isGM }: { isGM: boolean }) {
     setView(v => {
       const ns = Math.max(0.05, Math.min(10, v.scale * factor))
       const ratio = ns / v.scale
-      return { scale: ns, x: cx - (cx - v.x) * ratio, y: cy - (cy - v.y) * ratio }
+      return clampView({ scale: ns, x: cx - (cx - v.x) * ratio, y: cy - (cy - v.y) * ratio })
     })
   }
 
@@ -411,6 +457,7 @@ export function GameMap({ isGM }: { isGM: boolean }) {
       color: newColor,
       x: 50,
       y: 50,
+      owner: sessionId,
     }
     addMapToken(t)
     broadcast('token-add', t)
@@ -421,6 +468,19 @@ export function GameMap({ isGM }: { isGM: boolean }) {
   function handleRemove(id: string) {
     removeMapToken(id)
     broadcast('token-remove', { id })
+    if (editing === id) setEditing(null)
+  }
+
+  // Apply a label/color change to a chip: persist it (editMapToken) and push it
+  // to peers live over the map channel.
+  function applyTokenEdit(id: string, updates: Partial<MapToken>) {
+    editMapToken(id, updates)
+    broadcast('token-update', { id, updates })
+  }
+
+  function closeEditor() {
+    if (editing) applyTokenEdit(editing, { label: editLabel.trim() || 'Token' })
+    setEditing(null)
   }
 
   function strokeOpacity(s: Stroke): number {
@@ -447,6 +507,15 @@ export function GameMap({ isGM }: { isGM: boolean }) {
     { id: 'draw', icon: Pencil, label: 'Draw (fades out)' },
     { id: 'ping', icon: Radio, label: 'Ping a spot' },
   ]
+
+  // Chip currently being edited (if it still exists) and its on-screen anchor.
+  const editTok = editing ? mapTokens.find(t => t.id === editing) : null
+  const editAnchor = editTok
+    ? {
+        x: view.x + (editTok.x / 100 * surface.width) * view.scale,
+        y: view.y + (editTok.y / 100 * surface.height) * view.scale,
+      }
+    : null
 
   return (
     <div className="relative h-[calc(100vh-8rem)] select-none">
@@ -533,7 +602,7 @@ export function GameMap({ isGM }: { isGM: boolean }) {
       {/* Canvas */}
       <div
         ref={containerRef}
-        className={cn('h-full w-full overflow-hidden rounded-lg border bg-slate-900', toolCursor)}
+        className={cn('relative h-full w-full overflow-hidden rounded-lg border bg-slate-900', toolCursor)}
         onPointerDown={onDown}
         onPointerMove={onMove}
         onPointerUp={onUp}
@@ -621,14 +690,17 @@ export function GameMap({ isGM }: { isGM: boolean }) {
             >
               <div
                 className={cn(
-                  'flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/80 text-sm font-bold text-white shadow-lg shadow-black/40',
+                  'flex h-6 w-6 items-center justify-center rounded-full border-2 border-white/80 text-[10px] font-bold text-white shadow-lg shadow-black/40',
                   drag?.id === token.id && 'ring-2 ring-white/60 scale-110',
                 )}
                 style={{ backgroundColor: token.color }}
               >
                 {token.label.slice(0, 2).toUpperCase()}
               </div>
-              <span className="mt-0.5 whitespace-nowrap text-[10px] font-medium text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+              <span
+                className="mt-0.5 whitespace-nowrap text-[10px] font-bold"
+                style={{ color: token.color }}
+              >
                 {token.label}
               </span>
             </div>
@@ -678,6 +750,50 @@ export function GameMap({ isGM }: { isGM: boolean }) {
         )}
       </div>
 
+      {/* Chip editor — opens on tapping (not dragging) a chip you own (or any, as GM) */}
+      {editTok && editAnchor && (
+        <div
+          className="absolute z-30 w-52 rounded-lg border bg-background/95 p-2 shadow-xl backdrop-blur"
+          style={{
+            left: Math.max(8, editAnchor.x),
+            top: Math.max(8, editAnchor.y - 12),
+            transform: 'translate(-50%, -100%)',
+          }}
+          onPointerDown={e => e.stopPropagation()}
+        >
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-xs font-semibold">Edit chip</span>
+            <button className="text-muted-foreground hover:text-foreground" onClick={closeEditor} title="Done">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <Input
+            value={editLabel}
+            onChange={e => setEditLabel(e.target.value)}
+            placeholder="Name..."
+            autoFocus
+            className="h-7 text-xs"
+            onKeyDown={e => { if (e.key === 'Enter') closeEditor() }}
+          />
+          <div className="mt-2 flex flex-wrap gap-1">
+            {TOKEN_PALETTE.map(c => (
+              <button
+                key={c}
+                className={cn('h-5 w-5 rounded-full border-2', editTok.color === c ? 'border-white' : 'border-transparent')}
+                style={{ backgroundColor: c }}
+                onClick={() => applyTokenEdit(editTok.id, { color: c })}
+              />
+            ))}
+          </div>
+          <div className="mt-2 flex gap-1">
+            <Button size="sm" variant="destructive" className="h-6 flex-1 gap-1 text-xs" onClick={() => handleRemove(editTok.id)}>
+              <Trash2 className="h-3 w-3" /> Delete
+            </Button>
+            <Button size="sm" className="h-6 text-xs" onClick={closeEditor}>Done</Button>
+          </div>
+        </div>
+      )}
+
       {/* Token panel */}
       <div
         className="absolute bottom-2 right-2 z-10 w-48 rounded-lg border bg-background/90 backdrop-blur"
@@ -704,9 +820,10 @@ export function GameMap({ isGM }: { isGM: boolean }) {
                     style={{ backgroundColor: token.color }}
                   />
                   <span className="flex-1 truncate">{token.label}</span>
-                  {isGM && (
+                  {(isGM || token.owner === sessionId) && (
                     <button
                       className="shrink-0 text-muted-foreground hover:text-destructive"
+                      title={isGM && token.owner !== sessionId ? 'Remove chip' : 'Remove your chip'}
                       onClick={() => handleRemove(token.id)}
                     >
                       <Trash2 className="h-3 w-3" />
@@ -716,47 +833,45 @@ export function GameMap({ isGM }: { isGM: boolean }) {
               ))}
             </div>
 
-            {isGM && (
-              adding ? (
-                <div className="mt-2 space-y-2 border-t pt-2">
-                  <Input
-                    value={newLabel}
-                    onChange={e => setNewLabel(e.target.value)}
-                    placeholder="Token name..."
-                    className="h-7 text-xs"
-                    onKeyDown={e => e.key === 'Enter' && handleAdd()}
-                  />
-                  <div className="flex flex-wrap gap-1">
-                    {TOKEN_PALETTE.map(c => (
-                      <button
-                        key={c}
-                        className={cn(
-                          'h-5 w-5 rounded-full border-2',
-                          newColor === c ? 'border-white' : 'border-transparent',
-                        )}
-                        style={{ backgroundColor: c }}
-                        onClick={() => setNewColor(c)}
-                      />
-                    ))}
-                  </div>
-                  <div className="flex gap-1">
-                    <Button size="sm" className="h-6 flex-1 text-xs" onClick={handleAdd}>
-                      Add
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setAdding(false)}>
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
+            {adding ? (
+              <div className="mt-2 space-y-2 border-t pt-2">
+                <Input
+                  value={newLabel}
+                  onChange={e => setNewLabel(e.target.value)}
+                  placeholder="Token name..."
+                  className="h-7 text-xs"
+                  onKeyDown={e => e.key === 'Enter' && handleAdd()}
+                />
+                <div className="flex flex-wrap gap-1">
+                  {TOKEN_PALETTE.map(c => (
+                    <button
+                      key={c}
+                      className={cn(
+                        'h-5 w-5 rounded-full border-2',
+                        newColor === c ? 'border-white' : 'border-transparent',
+                      )}
+                      style={{ backgroundColor: c }}
+                      onClick={() => setNewColor(c)}
+                    />
+                  ))}
                 </div>
-              ) : (
-                <button
-                  className="mt-1.5 flex w-full items-center justify-center gap-1 rounded border border-dashed border-muted-foreground/30 py-1 text-[10px] text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground"
-                  onClick={() => setAdding(true)}
-                >
-                  <Plus className="h-3 w-3" />
-                  Add Token
-                </button>
-              )
+                <div className="flex gap-1">
+                  <Button size="sm" className="h-6 flex-1 text-xs" onClick={handleAdd}>
+                    Add
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setAdding(false)}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <button
+                className="mt-1.5 flex w-full items-center justify-center gap-1 rounded border border-dashed border-muted-foreground/30 py-1 text-[10px] text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground"
+                onClick={() => setAdding(true)}
+              >
+                <Plus className="h-3 w-3" />
+                Add Token
+              </button>
             )}
           </div>
         )}

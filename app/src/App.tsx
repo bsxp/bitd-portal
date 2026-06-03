@@ -178,7 +178,7 @@ function AppContent() {
                     variant="outline"
                     size="sm"
                     className="gap-1.5"
-                    title="Blank every character back to a fresh setup state and enable Setup Mode. Does not touch crew, clocks, scores, factions, or the map."
+                    title="Delete all characters (players rebuild via the character creator) and reset the crew's tier, rep, heat, wanted, coin, XP, abilities, upgrades, and claims to a fresh setup. Does not touch the crew's name/type, clocks, scores, factions, or the map."
                     onClick={() => setResetConfirm(true)}
                   >
                     <RotateCcw className="h-3.5 w-3.5" />

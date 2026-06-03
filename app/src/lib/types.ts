@@ -201,4 +201,8 @@ export interface MapToken {
   color: string
   x: number
   y: number
+  // The session that created this chip. The GM can remove any chip; a player
+  // can remove only chips they own. Seeded/legacy chips have no owner and are
+  // GM-only to remove.
+  owner?: string
 }

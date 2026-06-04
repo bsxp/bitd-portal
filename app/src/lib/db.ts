@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { makeDemoData, type CampaignData } from './demo-data'
-import type { Character, Crew, Clock, Faction, Score, MapToken } from './types'
+import type { Character, Crew, Clock, Faction, Score, MapToken, Media } from './types'
 
 // The Supabase client is configured with the `bitd` schema. Each entity table
 // stores the full typed object in a `data` jsonb column keyed by its own id.
@@ -12,7 +12,7 @@ export interface CampaignRow {
   map_image_url: string | null
 }
 
-type EntityTable = 'characters' | 'crews' | 'clocks' | 'factions' | 'scores' | 'map_tokens'
+type EntityTable = 'characters' | 'crews' | 'clocks' | 'factions' | 'scores' | 'map_tokens' | 'media'
 
 export async function findCampaignByCode(code: string): Promise<CampaignRow | null> {
   const { data, error } = await supabase
@@ -41,13 +41,14 @@ async function loadTable<T>(table: EntityTable, campaignId: string): Promise<T[]
 }
 
 export async function loadCampaignData(campaignId: string): Promise<CampaignData> {
-  const [characters, crews, clocks, factions, scores, mapTokens] = await Promise.all([
+  const [characters, crews, clocks, factions, scores, mapTokens, media] = await Promise.all([
     loadTable<Character>('characters', campaignId),
     loadTable<Crew>('crews', campaignId),
     loadTable<Clock>('clocks', campaignId),
     loadTable<Faction>('factions', campaignId),
     loadTable<Score>('scores', campaignId),
     loadTable<MapToken>('map_tokens', campaignId),
+    loadTable<Media>('media', campaignId),
   ])
   // A campaign has at most one active/planning score; the rest are completed
   // history, newest first.
@@ -63,6 +64,7 @@ export async function loadCampaignData(campaignId: string): Promise<CampaignData
     currentScore,
     scoreHistory,
     mapTokens,
+    media,
   }
 }
 
@@ -133,6 +135,18 @@ export async function uploadCharacterImage(
   const { error } = await supabase.storage
     .from('maps')
     .upload(path, file, { contentType: file.type || 'image/png', upsert: true })
+  if (error) throw error
+  return supabase.storage.from('maps').getPublicUrl(path).data.publicUrl
+}
+
+// Upload a piece of GM media (image or audio) to the shared public `maps`
+// bucket and return its public URL.
+export async function uploadMediaFile(campaignId: string, file: File): Promise<string> {
+  const ext = file.name.includes('.') ? file.name.split('.').pop() : (file.type.split('/')[1] || 'bin')
+  const path = `media/${campaignId}/${crypto.randomUUID()}.${ext}`
+  const { error } = await supabase.storage
+    .from('maps')
+    .upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: true })
   if (error) throw error
   return supabase.storage.from('maps').getPublicUrl(path).data.publicUrl
 }

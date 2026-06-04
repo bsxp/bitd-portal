@@ -58,6 +58,7 @@ function OnlinePlayers({ players }: { players: OnlinePlayer[] }) {
 function AppContent() {
   const {
     loading, loadError, onlinePlayers,
+    campaignId,
     role,
     characters, updateCharacter,
     crew, updateCrew,
@@ -65,6 +66,7 @@ function AppContent() {
     factions, updateFaction, addFaction, deleteFaction,
     activeCharacterId, setActiveCharacter,
     currentScore,
+    media, addMedia, deleteMedia,
     endScore,
     resetGame,
   } = useGame()
@@ -306,12 +308,17 @@ function AppContent() {
               crew={crew}
               clocks={visibleClocks}
               factions={isGM ? factions : undefined}
+              currentScore={currentScore}
+              media={media}
+              campaignId={campaignId}
               isGM={isGM}
               onCharacterClick={navigateToCharacter}
               onCharacterUpdate={updateCharacter}
               onCrewUpdate={updateCrew}
               onClockUpdate={updateClock}
               onEndScore={endScore}
+              onAddMedia={addMedia}
+              onDeleteMedia={deleteMedia}
             />
           </TabsContent>
 

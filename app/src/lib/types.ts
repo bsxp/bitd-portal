@@ -209,3 +209,15 @@ export interface MapToken {
   // GM-only to remove.
   owner?: string
 }
+
+// GM-uploaded media (images / audio) shared with the whole table, shown in the
+// Overview carousel. The file lives in the public `maps` storage bucket.
+export interface Media {
+  id: string
+  campaign_id: string
+  url: string
+  kind: 'image' | 'audio'
+  note: string | null
+  filename: string | null
+  created_at: string
+}

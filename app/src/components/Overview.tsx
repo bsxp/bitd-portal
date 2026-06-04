@@ -5,22 +5,65 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { ClockDisplay } from '@/components/trackers/ClockDisplay'
+import { MediaSection } from '@/components/MediaSection'
 import { cn } from '@/lib/utils'
 import { FACTION_STATUS_LABELS } from '@/lib/types'
-import { Minus, Plus, RotateCcw, Flame, TrendingUp, Coins } from 'lucide-react'
-import type { Character, Crew, Clock, Faction } from '@/lib/types'
+import { Minus, Plus, RotateCcw, Flame, TrendingUp, Coins, Target } from 'lucide-react'
+import type { Character, Crew, Clock, Faction, Score, Media } from '@/lib/types'
 
 interface OverviewProps {
   characters: Character[]
   crew: Crew | null
   clocks: Clock[]
   factions?: Faction[]
+  currentScore?: Score | null
+  media: Media[]
+  campaignId: string
   isGM: boolean
   onCharacterClick: (id: string) => void
   onCharacterUpdate?: (id: string, updates: Partial<Character>) => void
   onCrewUpdate?: (updates: Partial<Crew>) => void
   onClockUpdate?: (id: string, updates: Partial<Clock>) => void
   onEndScore?: () => void
+  onAddMedia: (item: Media) => void
+  onDeleteMedia: (id: string) => void
+}
+
+function ActiveScoreSummary({ score, scoreClockCount }: { score: Score; scoreClockCount: number }) {
+  return (
+    <div>
+      <h2 className="mb-3 text-lg font-semibold">Active Score</h2>
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <Target className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <CardTitle className="truncate text-lg">{score.title || 'Untitled score'}</CardTitle>
+            </div>
+            <Badge variant={score.status === 'active' ? 'default' : 'outline'} className="shrink-0 capitalize">
+              {score.status}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {score.target && <span><span className="text-muted-foreground">Target:</span> {score.target}</span>}
+            {score.plan_type && (
+              <span className="capitalize"><span className="text-muted-foreground">Plan:</span> {score.plan_type}</span>
+            )}
+            {score.position && (
+              <span className="capitalize"><span className="text-muted-foreground">Position:</span> {score.position}</span>
+            )}
+            {scoreClockCount > 0 && (
+              <span><span className="text-muted-foreground">Clocks:</span> {scoreClockCount}</span>
+            )}
+          </div>
+          {score.plan_detail && <p className="text-muted-foreground">{score.plan_detail}</p>}
+          {score.notes && <p className="whitespace-pre-wrap text-muted-foreground">{score.notes}</p>}
+        </CardContent>
+      </Card>
+    </div>
+  )
 }
 
 function StressPips({ stress, max = 9 }: { stress: number; max?: number }) {
@@ -425,14 +468,20 @@ export function Overview({
   crew,
   clocks,
   factions,
+  currentScore,
+  media,
+  campaignId,
   isGM,
   onCharacterClick,
   onCharacterUpdate,
   onCrewUpdate,
   onClockUpdate,
   onEndScore,
+  onAddMedia,
+  onDeleteMedia,
 }: OverviewProps) {
   const activeClocks = clocks.filter((c) => c.active && c.filled < c.segments)
+  const scoreClockCount = clocks.filter((c) => c.scope === 'score' && c.active).length
 
   return (
     <div className="space-y-6">
@@ -446,6 +495,9 @@ export function Overview({
           onEndScore={onEndScore}
         />
       )}
+
+      {/* Active score summary */}
+      {currentScore && <ActiveScoreSummary score={currentScore} scoreClockCount={scoreClockCount} />}
 
       {/* Character cards */}
       <div>
@@ -525,6 +577,15 @@ export function Overview({
           </Card>
         </div>
       )}
+
+      {/* Shared media carousel */}
+      <MediaSection
+        media={media}
+        isGM={isGM}
+        campaignId={campaignId}
+        onAdd={onAddMedia}
+        onDelete={onDeleteMedia}
+      />
     </div>
   )
 }

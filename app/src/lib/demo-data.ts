@@ -1,4 +1,4 @@
-import type { Character, Crew, Clock, Faction, Score, MapToken } from './types'
+import type { Character, Crew, Clock, Faction, Score, MapToken, Media } from './types'
 import { CANONICAL_FACTIONS } from './game-data'
 
 // Builds a fresh copy of the demo campaign's contents, scoped to a campaign id.
@@ -83,6 +83,7 @@ export interface CampaignData {
   currentScore: Score | null
   scoreHistory: Score[]
   mapTokens: MapToken[]
+  media: Media[]
 }
 
 export function makeDemoData(campaignId: string): CampaignData {
@@ -228,5 +229,6 @@ export function makeDemoData(campaignId: string): CampaignData {
   // No default map chips — players/GM add their own via the map's Add Token.
   const mapTokens: MapToken[] = []
 
-  return { characters, crew, clocks, factions, currentScore, scoreHistory, mapTokens }
+  const media: Media[] = []
+  return { characters, crew, clocks, factions, currentScore, scoreHistory, mapTokens, media }
 }

@@ -48,6 +48,7 @@ interface Props {
 export function CharacterCreate({ campaignId, onCancel, onCreated }: Props) {
   const [name, setName] = useState('')
   const [alias, setAlias] = useState('')
+  const [playerName, setPlayerName] = useState('')
   const [look, setLook] = useState('')
   const [heritage, setHeritage] = useState('')
   const [heritageDetail, setHeritageDetail] = useState('')
@@ -115,6 +116,7 @@ export function CharacterCreate({ campaignId, onCancel, onCreated }: Props) {
       created_at: new Date().toISOString(),
       name: name.trim(),
       alias: alias.trim() || null,
+      player_name: playerName.trim() || null,
       look: look.trim() || null,
       playbook,
       heritage: heritage || null,
@@ -190,6 +192,9 @@ export function CharacterCreate({ campaignId, onCancel, onCreated }: Props) {
               <Input value={alias} onChange={(e) => setAlias(e.target.value)} placeholder="Racer" />
             </Field>
           </div>
+          <Field label="Played by">
+            <Input value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="Your name" />
+          </Field>
           <Field label="Look">
             <Input value={look} onChange={(e) => setLook(e.target.value)} placeholder="Young, privileged, rebellious" />
           </Field>

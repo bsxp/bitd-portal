@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -42,6 +42,68 @@ interface CharacterSheetProps {
   isGM?: boolean
 }
 
+// Notes write to the DB through onUpdate, so committing on every keystroke makes
+// typing stutter. Keep the text in local state for instant feedback and debounce
+// the save, flushing on blur and unmount so nothing is lost.
+function NotesField({
+  value,
+  onCommit,
+  readonly,
+}: {
+  value: string
+  onCommit: (v: string | null) => void
+  readonly?: boolean
+}) {
+  const [draft, setDraft] = useState(value)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const draftRef = useRef(value)
+  // The last value we sent up (and expect to see echoed back via props), so a
+  // genuinely external change can be told apart from our own debounced commit.
+  const lastSynced = useRef(value)
+
+  // Adopt external updates (e.g. another device) without clobbering live typing.
+  useEffect(() => {
+    if (value !== lastSynced.current) {
+      lastSynced.current = value
+      draftRef.current = value
+      setDraft(value)
+    }
+  }, [value])
+
+  function commit() {
+    if (timer.current) {
+      clearTimeout(timer.current)
+      timer.current = null
+    }
+    const v = draftRef.current
+    if (v !== lastSynced.current) {
+      lastSynced.current = v
+      onCommit(v || null)
+    }
+  }
+
+  // Flush any pending edit when the sheet unmounts.
+  useEffect(() => commit, [])
+
+  function handleChange(v: string) {
+    draftRef.current = v
+    setDraft(v)
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(commit, 500)
+  }
+
+  return (
+    <textarea
+      value={draft}
+      onChange={(e) => handleChange(e.target.value)}
+      onBlur={commit}
+      readOnly={readonly}
+      placeholder="Session notes, plans, reminders..."
+      className="w-full min-h-[100px] rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+    />
+  )
+}
+
 function SectionHeader({ label, className }: { label: string; className?: string }) {
   return (
     <h3 className={cn(
@@ -71,6 +133,9 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
             <span className="shrink-0 rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold uppercase text-primary">
               {character.playbook}
             </span>
+          )}
+          {character.player_name && (
+            <span className="shrink-0 text-xs text-muted-foreground">played by {character.player_name}</span>
           )}
         </div>
         <button
@@ -153,15 +218,27 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
                 />
               </div>
             </div>
-            <div className="mt-3">
-              <Label className="text-xs text-muted-foreground">Look</Label>
-              <Input
-                value={character.look ?? ''}
-                onChange={(e) => onUpdate({ look: e.target.value || null })}
-                readOnly={readonly}
-                placeholder="Describe your character's appearance..."
-                className="mt-1 h-8"
-              />
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Played by</Label>
+                <Input
+                  value={character.player_name ?? ''}
+                  onChange={(e) => onUpdate({ player_name: e.target.value || null })}
+                  readOnly={readonly}
+                  placeholder="Real player's name..."
+                  className="mt-1 h-8"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Look</Label>
+                <Input
+                  value={character.look ?? ''}
+                  onChange={(e) => onUpdate({ look: e.target.value || null })}
+                  readOnly={readonly}
+                  placeholder="Describe your character's appearance..."
+                  className="mt-1 h-8"
+                />
+              </div>
             </div>
             {/* Inline summary when profile data is set */}
             {(character.heritage || character.background) && (
@@ -509,12 +586,10 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
         <Card>
           <CardContent className="pt-4">
             <SectionHeader label="Notes" className="mb-2" />
-            <textarea
+            <NotesField
               value={character.notes ?? ''}
-              onChange={(e) => onUpdate({ notes: e.target.value || null })}
-              readOnly={readonly}
-              placeholder="Session notes, plans, reminders..."
-              className="w-full min-h-[100px] rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+              onCommit={(notes) => onUpdate({ notes })}
+              readonly={readonly}
             />
           </CardContent>
         </Card>

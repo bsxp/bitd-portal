@@ -76,6 +76,7 @@ export interface Character {
   campaign_id: string
   name: string
   alias: string | null
+  player_name: string | null
   look: string | null
   playbook: Playbook | null
   heritage: string | null

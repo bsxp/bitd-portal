@@ -345,6 +345,9 @@ function CharacterCard({
             </Badge>
           )}
         </div>
+        {character.player_name && (
+          <p className="text-xs text-muted-foreground">played by {character.player_name}</p>
+        )}
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-3">
         {/* Stress */}

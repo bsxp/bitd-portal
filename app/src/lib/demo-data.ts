@@ -12,6 +12,7 @@ function makeCharacter(campaignId: string, overrides: Partial<Character>): Chara
     campaign_id: campaignId,
     name: 'Unnamed',
     alias: null,
+    player_name: null,
     look: null,
     playbook: null,
     heritage: null,

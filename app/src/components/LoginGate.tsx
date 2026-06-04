@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { KeyRound, Shield, User, Loader2, ArrowLeft, UserPlus } from 'lucide-react'
 import type { Character } from '@/lib/types'
 import { CharacterCreate } from '@/components/CharacterCreate'
+import { CharacterAvatar } from '@/components/CharacterAvatar'
 
 export function LoginGate() {
   const { session } = useSession()
@@ -119,8 +120,8 @@ function ClaimSeat() {
     )
   }
 
-  const SeatRow = ({ seatKey, name, sub, icon, seat }: {
-    seatKey: string; name: string; sub?: string; icon: React.ReactNode; seat: Seat
+  const SeatRow = ({ seatKey, name, sub, icon, avatar, seat }: {
+    seatKey: string; name: string; sub?: string; icon: React.ReactNode; avatar?: React.ReactNode; seat: Seat
   }) => {
     const takenBy = online.get(seatKey)
     const taken = !!takenBy
@@ -135,12 +136,14 @@ function ClaimSeat() {
             : 'border-muted-foreground/20 hover:border-primary hover:bg-accent/50',
         )}
       >
-        <div className={cn(
-          'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
-          taken ? 'bg-muted-foreground/10 text-muted-foreground' : 'bg-primary/10 text-primary',
-        )}>
-          {icon}
-        </div>
+        {avatar ?? (
+          <div className={cn(
+            'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
+            taken ? 'bg-muted-foreground/10 text-muted-foreground' : 'bg-primary/10 text-primary',
+          )}>
+            {icon}
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <div className="font-medium">{name}</div>
           {sub && <div className="text-xs text-muted-foreground capitalize">{sub}</div>}
@@ -198,6 +201,7 @@ function ClaimSeat() {
                 name={c.name}
                 sub={[c.alias && `"${c.alias}"`, c.playbook].filter(Boolean).join(' · ') || undefined}
                 icon={<User className="h-4 w-4" />}
+                avatar={<CharacterAvatar character={c} size="md" className="h-9 w-9" />}
                 seat={{ type: 'character', id: c.id, name: c.name }}
               />
             ))

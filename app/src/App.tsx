@@ -314,24 +314,26 @@ function AppContent() {
 
           {/* Characters Tab */}
           <TabsContent value="characters">
-            <div className="mb-4 flex gap-2 overflow-x-auto pb-2">
+            <div className="mb-4 flex flex-wrap gap-2">
               {characters.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setActiveCharacter(c.id)}
                   className={cn(
-                    'whitespace-nowrap rounded-md border px-4 py-2 text-sm font-medium transition-colors',
+                    'flex flex-col items-start rounded-md border px-4 py-2 text-sm font-medium leading-tight transition-colors',
                     activeCharacterId === c.id
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-muted hover:border-primary/50',
                   )}
                 >
-                  {c.name}
-                  {c.playbook && (
-                    <span className="ml-1.5 text-xs opacity-70">({c.playbook})</span>
-                  )}
+                  <span>
+                    {c.name}
+                    {c.playbook && (
+                      <span className="ml-1.5 text-xs opacity-70">({c.playbook})</span>
+                    )}
+                  </span>
                   {c.player_name && (
-                    <span className="ml-1.5 text-xs opacity-50">· {c.player_name}</span>
+                    <span className="mt-0.5 text-[11px] font-normal opacity-60">{c.player_name}</span>
                   )}
                 </button>
               ))}

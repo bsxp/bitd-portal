@@ -83,7 +83,7 @@ export function CharacterArt({
 
       {character.art_url ? (
         <div className="group relative overflow-hidden rounded-lg border bg-muted">
-          <img src={character.art_url} alt={character.name} className="aspect-[3/4] w-full object-cover" />
+          <img src={character.art_url} alt={character.name} className="aspect-[3/4] w-full object-cover object-top" />
           {!readonly && (
             <div className="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-gradient-to-t from-black/60 to-transparent p-1.5 opacity-0 transition-opacity group-hover:opacity-100">
               <Button size="icon-sm" variant="secondary" onClick={recrop} disabled={busy} title="Re-crop profile picture">

@@ -21,6 +21,7 @@ import { CoinTracker } from '@/components/trackers/CoinTracker'
 import { ArmorTracker } from '@/components/trackers/ArmorTracker'
 import { ContactsList } from '@/components/trackers/ContactsList'
 import { CharacterArt } from '@/components/CharacterArt'
+import { CharacterSummary } from '@/components/CharacterSummary'
 import { PLAYBOOK_XP_TRIGGERS, PLAYBOOK_ABILITIES, ABILITY_INPUTS, SPECIAL_ARMOR_ABILITIES, PLAYBOOK_MAX_STRESS } from '@/lib/game-data'
 import { HERITAGE_OPTIONS, BACKGROUND_OPTIONS, VICE_OPTIONS } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -146,25 +147,19 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
 
   return (
     <div className="space-y-3">
-      {/* ── ART + IDENTITY: [ full art (2/5) | stacked info ] ── */}
+      {/* ── HEADER: [ portrait (2/5) | summary ] — shown to everyone ── */}
       <div className="flex gap-4">
         {(character.art_url || !readonly) && (
           <CharacterArt character={character} onUpdate={onUpdate} readonly={readonly} />
         )}
-        <div className="min-w-0 flex-1 space-y-3">
-      {/* ── IDENTITY BAR ── */}
-      <div className="flex items-center gap-3">
-        <div className="flex min-w-0 flex-1 items-baseline gap-2">
-          <h2 className="truncate text-2xl font-bold">{character.name}</h2>
-          {character.alias && (
-            <span className="shrink-0 text-base text-muted-foreground">"{character.alias}"</span>
-          )}
-          {character.playbook && (
-            <span className="shrink-0 rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold uppercase text-primary">
-              {character.playbook}
-            </span>
-          )}
-        </div>
+        <CharacterSummary character={character} />
+      </div>
+
+      {/* Everything below is the editable sheet — only the owner or GM sees it. */}
+      {!readonly && (
+      <>
+      {/* ── PROFILE EDITOR (set-and-forget) ── */}
+      <div>
         <button
           onClick={() => setProfileOpen(p => !p)}
           className={cn(
@@ -178,7 +173,7 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
         </button>
       </div>
 
-      {/* ── COLLAPSIBLE PROFILE (set-and-forget) ── */}
+      {/* ── COLLAPSIBLE PROFILE FIELDS ── */}
       {profileOpen && (
         <Card>
           <CardContent className="pt-4">
@@ -267,45 +262,9 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
                 />
               </div>
             </div>
-            {/* Inline summary when profile data is set */}
-            {(character.heritage || character.background) && (
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                {character.heritage && <span><strong>Heritage:</strong> <span className="capitalize">{character.heritage}</span></span>}
-                {character.background && <span><strong>Background:</strong> <span className="capitalize">{character.background}</span></span>}
-                {character.vice && <span><strong>Vice:</strong> <span className="capitalize">{character.vice}</span></span>}
-                {character.vice_purveyor && <span><strong>Purveyor:</strong> {character.vice_purveyor}</span>}
-              </div>
-            )}
           </CardContent>
         </Card>
       )}
-
-      {/* Inline profile summary when collapsed */}
-      {!profileOpen && (character.heritage || character.background || character.vice || character.look) && (
-        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-          {character.heritage && <span className="capitalize">{character.heritage}</span>}
-          {character.background && (
-            <>
-              {character.heritage && <span>·</span>}
-              <span className="capitalize">{character.background}</span>
-            </>
-          )}
-          {character.vice && (
-            <>
-              {(character.heritage || character.background) && <span>·</span>}
-              <span className="capitalize">{character.vice}</span>
-            </>
-          )}
-          {character.look && (
-            <>
-              {(character.heritage || character.background || character.vice) && <span>·</span>}
-              <span className="italic">{character.look}</span>
-            </>
-          )}
-        </div>
-      )}
-        </div>
-      </div>
 
       {/* ══════════════════════════════════════════════
            TIER 1: ALWAYS VISIBLE — the "during a score" zone
@@ -626,6 +585,8 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
           </CardContent>
         </Card>
       </div>
+      </>
+      )}
     </div>
   )
 }

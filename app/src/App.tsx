@@ -82,6 +82,8 @@ function AppContent() {
   const isGM = role === 'gm'
   const setupMode = !!crew?.setup_mode
   const activeCharacter = characters.find((c) => c.id === activeCharacterId)
+  // The character tied to this client's claimed seat (null for the GM seat).
+  const mySeatCharId = session?.seat?.type === 'character' ? session.seat.id : null
   const visibleClocks = isGM ? clocks : clocks.filter((c) => c.visible_to_players)
 
   function navigateToCharacter(id: string) {
@@ -347,6 +349,7 @@ function AppContent() {
                 character={activeCharacter}
                 onUpdate={(updates) => updateCharacter(activeCharacter.id, updates)}
                 isGM={isGM}
+                readonly={!isGM && activeCharacter.id !== mySeatCharId}
               />
             )}
           </TabsContent>

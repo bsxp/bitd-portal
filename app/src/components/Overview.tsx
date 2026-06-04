@@ -336,22 +336,20 @@ function CharacterCard({
         <div className="flex items-center gap-3">
           <CharacterAvatar character={character} size="lg" />
           <div className="min-w-0 flex-1">
-            <div className="flex items-baseline justify-between gap-2">
-              <div className="flex min-w-0 items-baseline gap-2">
-                <CardTitle className="truncate text-lg">{character.name}</CardTitle>
-                {character.alias && (
-                  <span className="shrink-0 text-sm text-muted-foreground">"{character.alias}"</span>
-                )}
-              </div>
+            <div className="flex min-w-0 items-baseline gap-2">
+              <CardTitle className="truncate text-lg">{character.name}</CardTitle>
+              {character.alias && (
+                <span className="shrink-0 text-sm text-muted-foreground">"{character.alias}"</span>
+              )}
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
               {character.playbook && (
-                <Badge variant="outline" className="shrink-0 text-xs capitalize">
+                <Badge variant="outline" className="text-xs capitalize">
                   {character.playbook}
                 </Badge>
               )}
+              {character.player_name && <span>played by {character.player_name}</span>}
             </div>
-            {character.player_name && (
-              <p className="text-xs text-muted-foreground">played by {character.player_name}</p>
-            )}
           </div>
         </div>
       </CardHeader>

@@ -29,7 +29,7 @@ import { LoginGate } from '@/components/LoginGate'
 import { GameProvider, useGame } from '@/lib/store'
 import { SessionProvider, useSession } from '@/lib/session'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
+import { cn, displayName } from '@/lib/utils'
 import { Shield, Users, Clock, Swords, Eye, EyeOff, Plus, Home, Map, Target, Loader2, LogOut, TrendingUp, Flame, Coins, Wrench, RotateCcw } from 'lucide-react'
 import type { Clock as ClockType, ClockScope } from '@/lib/types'
 import type { OnlinePlayer } from '@/lib/store'
@@ -330,7 +330,7 @@ function AppContent() {
                   <CharacterAvatar character={c} size="sm" />
                   <span className="flex flex-col items-start">
                     <span>
-                      {c.name}
+                      {displayName(c.name, c.alias)}
                       {c.playbook && (
                         <span className="ml-1.5 text-xs opacity-70">({c.playbook})</span>
                       )}

@@ -42,17 +42,27 @@ interface CharacterSheetProps {
   isGM?: boolean
 }
 
-// Notes write to the DB through onUpdate, so committing on every keystroke makes
-// typing stutter. Keep the text in local state for instant feedback and debounce
-// the save, flushing on blur and unmount so nothing is lost.
-function NotesField({
+// Free-text fields write to the DB through onUpdate. Committing on every
+// keystroke both stutters and — because the input is controlled by the value
+// that round-trips through the DB — can drop characters when typing fast. So
+// keep the text in local state for instant feedback and debounce the save,
+// flushing on blur and unmount so nothing is lost.
+function DebouncedText({
   value,
   onCommit,
   readonly,
+  placeholder,
+  multiline,
+  className,
+  delay = 300,
 }: {
   value: string
   onCommit: (v: string | null) => void
   readonly?: boolean
+  placeholder?: string
+  multiline?: boolean
+  className?: string
+  delay?: number
 }) {
   const [draft, setDraft] = useState(value)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -82,24 +92,37 @@ function NotesField({
     }
   }
 
-  // Flush any pending edit when the sheet unmounts.
+  // Flush any pending edit when the field unmounts.
   useEffect(() => commit, [])
 
   function handleChange(v: string) {
     draftRef.current = v
     setDraft(v)
     if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(commit, 500)
+    timer.current = setTimeout(commit, delay)
+  }
+
+  if (multiline) {
+    return (
+      <textarea
+        value={draft}
+        onChange={(e) => handleChange(e.target.value)}
+        onBlur={commit}
+        readOnly={readonly}
+        placeholder={placeholder}
+        className={className}
+      />
+    )
   }
 
   return (
-    <textarea
+    <Input
       value={draft}
       onChange={(e) => handleChange(e.target.value)}
       onBlur={commit}
       readOnly={readonly}
-      placeholder="Session notes, plans, reminders..."
-      className="w-full min-h-[100px] rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+      placeholder={placeholder}
+      className={className}
     />
   )
 }
@@ -209,10 +232,10 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Vice Purveyor</Label>
-                <Input
+                <DebouncedText
                   value={character.vice_purveyor ?? ''}
-                  onChange={(e) => onUpdate({ vice_purveyor: e.target.value || null })}
-                  readOnly={readonly}
+                  onCommit={(vice_purveyor) => onUpdate({ vice_purveyor })}
+                  readonly={readonly}
                   placeholder="NPC name..."
                   className="mt-1 h-8"
                 />
@@ -221,20 +244,20 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div>
                 <Label className="text-xs text-muted-foreground">Played by</Label>
-                <Input
+                <DebouncedText
                   value={character.player_name ?? ''}
-                  onChange={(e) => onUpdate({ player_name: e.target.value || null })}
-                  readOnly={readonly}
+                  onCommit={(player_name) => onUpdate({ player_name })}
+                  readonly={readonly}
                   placeholder="Real player's name..."
                   className="mt-1 h-8"
                 />
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Look</Label>
-                <Input
+                <DebouncedText
                   value={character.look ?? ''}
-                  onChange={(e) => onUpdate({ look: e.target.value || null })}
-                  readOnly={readonly}
+                  onCommit={(look) => onUpdate({ look })}
+                  readonly={readonly}
                   placeholder="Describe your character's appearance..."
                   className="mt-1 h-8"
                 />
@@ -586,10 +609,13 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
         <Card>
           <CardContent className="pt-4">
             <SectionHeader label="Notes" className="mb-2" />
-            <NotesField
+            <DebouncedText
               value={character.notes ?? ''}
               onCommit={(notes) => onUpdate({ notes })}
               readonly={readonly}
+              multiline
+              placeholder="Session notes, plans, reminders..."
+              className="w-full min-h-[100px] rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
             />
           </CardContent>
         </Card>

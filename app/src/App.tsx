@@ -330,6 +330,9 @@ function AppContent() {
                   {c.playbook && (
                     <span className="ml-1.5 text-xs opacity-70">({c.playbook})</span>
                   )}
+                  {c.player_name && (
+                    <span className="ml-1.5 text-xs opacity-50">· {c.player_name}</span>
+                  )}
                 </button>
               ))}
             </div>

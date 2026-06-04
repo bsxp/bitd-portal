@@ -117,6 +117,8 @@ export function CharacterCreate({ campaignId, onCancel, onCreated }: Props) {
       name: name.trim(),
       alias: alias.trim() || null,
       player_name: playerName.trim() || null,
+      art_url: null,
+      avatar_url: null,
       look: look.trim() || null,
       playbook,
       heritage: heritage || null,

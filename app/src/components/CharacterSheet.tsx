@@ -20,6 +20,7 @@ import { LoadTracker } from '@/components/trackers/LoadTracker'
 import { CoinTracker } from '@/components/trackers/CoinTracker'
 import { ArmorTracker } from '@/components/trackers/ArmorTracker'
 import { ContactsList } from '@/components/trackers/ContactsList'
+import { CharacterArt } from '@/components/CharacterArt'
 import { PLAYBOOK_XP_TRIGGERS, PLAYBOOK_ABILITIES, ABILITY_INPUTS, SPECIAL_ARMOR_ABILITIES, PLAYBOOK_MAX_STRESS } from '@/lib/game-data'
 import { HERITAGE_OPTIONS, BACKGROUND_OPTIONS, VICE_OPTIONS } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -145,6 +146,12 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
 
   return (
     <div className="space-y-3">
+      {/* ── ART + IDENTITY: [ full art (2/5) | stacked info ] ── */}
+      <div className="flex gap-4">
+        {(character.art_url || !readonly) && (
+          <CharacterArt character={character} onUpdate={onUpdate} readonly={readonly} />
+        )}
+        <div className="min-w-0 flex-1 space-y-3">
       {/* ── IDENTITY BAR ── */}
       <div className="flex items-center gap-3">
         <div className="flex min-w-0 flex-1 items-baseline gap-2">
@@ -297,6 +304,8 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
           )}
         </div>
       )}
+        </div>
+      </div>
 
       {/* ══════════════════════════════════════════════
            TIER 1: ALWAYS VISIBLE — the "during a score" zone

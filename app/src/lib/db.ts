@@ -118,6 +118,25 @@ export async function uploadMapImage(campaignId: string, file: File): Promise<st
   return supabase.storage.from('maps').getPublicUrl(path).data.publicUrl
 }
 
+// Upload character art (full image) or a cropped avatar to the shared `maps`
+// storage bucket and return its public URL. We reuse the existing public bucket
+// (separate path prefixes) so no new bucket/policies are needed. Accepts a File
+// (original art) or a Blob (canvas-cropped avatar).
+export async function uploadCharacterImage(
+  characterId: string,
+  file: Blob,
+  kind: 'art' | 'avatar',
+): Promise<string> {
+  const fromName = file instanceof File && file.name.includes('.') ? file.name.split('.').pop() : ''
+  const ext = fromName || file.type.split('/')[1] || 'png'
+  const path = `char-${kind}/${characterId}/${crypto.randomUUID()}.${ext}`
+  const { error } = await supabase.storage
+    .from('maps')
+    .upload(path, file, { contentType: file.type || 'image/png', upsert: true })
+  if (error) throw error
+  return supabase.storage.from('maps').getPublicUrl(path).data.publicUrl
+}
+
 // Push a fresh demo dataset into a campaign. Used the first time a campaign
 // is opened and has no characters yet.
 async function seedCampaign(campaignId: string): Promise<CampaignData> {

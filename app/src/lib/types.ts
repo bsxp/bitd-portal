@@ -77,6 +77,8 @@ export interface Character {
   name: string
   alias: string | null
   player_name: string | null
+  art_url: string | null
+  avatar_url: string | null
   look: string | null
   playbook: Playbook | null
   heritage: string | null

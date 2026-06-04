@@ -22,6 +22,7 @@ import { CrewSheet } from '@/components/CrewSheet'
 import { ClockDashboard } from '@/components/ClockDashboard'
 import { FactionTracker } from '@/components/FactionTracker'
 import { Overview } from '@/components/Overview'
+import { CharacterAvatar } from '@/components/CharacterAvatar'
 import { GameMap } from '@/components/GameMap'
 import { ScorePanel } from '@/components/ScorePanel'
 import { LoginGate } from '@/components/LoginGate'
@@ -320,21 +321,24 @@ function AppContent() {
                   key={c.id}
                   onClick={() => setActiveCharacter(c.id)}
                   className={cn(
-                    'flex flex-col items-start rounded-md border px-4 py-2 text-sm font-medium leading-tight transition-colors',
+                    'flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium leading-tight transition-colors',
                     activeCharacterId === c.id
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-muted hover:border-primary/50',
                   )}
                 >
-                  <span>
-                    {c.name}
-                    {c.playbook && (
-                      <span className="ml-1.5 text-xs opacity-70">({c.playbook})</span>
+                  <CharacterAvatar character={c} size="sm" />
+                  <span className="flex flex-col items-start">
+                    <span>
+                      {c.name}
+                      {c.playbook && (
+                        <span className="ml-1.5 text-xs opacity-70">({c.playbook})</span>
+                      )}
+                    </span>
+                    {c.player_name && (
+                      <span className="mt-0.5 text-[11px] font-normal opacity-60">{c.player_name}</span>
                     )}
                   </span>
-                  {c.player_name && (
-                    <span className="mt-0.5 text-[11px] font-normal opacity-60">{c.player_name}</span>
-                  )}
                 </button>
               ))}
             </div>

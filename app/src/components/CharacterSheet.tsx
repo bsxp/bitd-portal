@@ -157,9 +157,6 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
               {character.playbook}
             </span>
           )}
-          {character.player_name && (
-            <span className="shrink-0 text-xs text-muted-foreground">played by {character.player_name}</span>
-          )}
         </div>
         <button
           onClick={() => setProfileOpen(p => !p)}

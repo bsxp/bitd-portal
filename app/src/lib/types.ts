@@ -208,6 +208,9 @@ export interface MapToken {
   // can remove only chips they own. Seeded/legacy chips have no owner and are
   // GM-only to remove.
   owner?: string
+  // Optional icon key (see TOKEN_ICONS in GameMap) shown instead of the
+  // label's initials. Empty/absent falls back to initials.
+  icon?: string
   // When set, this is a character's avatar token (auto-managed, one per
   // character). Its picture/name derive from the live character; only that
   // character's player — or the GM — may move it. Id is `char:<characterId>`.

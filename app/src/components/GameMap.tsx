@@ -6,7 +6,7 @@ import { uploadMapImage } from '@/lib/db'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import { Plus, Minus, RotateCcw, Upload, Trash2, X, Users, ChevronDown, ImageIcon, Hand, Pencil, Radio } from 'lucide-react'
+import { Plus, Minus, RotateCcw, Upload, Trash2, X, Users, ChevronDown, ImageIcon, Hand, Pencil, Radio, Home, Star, Skull, Flame, MapPin, Crown, Crosshair, Eye } from 'lucide-react'
 import { CharacterAvatar } from '@/components/CharacterAvatar'
 import type { MapToken } from '@/lib/types'
 
@@ -14,6 +14,54 @@ const TOKEN_PALETTE = [
   '#ef4444', '#3b82f6', '#22c55e', '#f59e0b',
   '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
 ]
+
+// Icons a chip can show instead of its label's initials. Keyed by a stable
+// string stored on the token (MapToken.icon); empty/absent = initials.
+const TOKEN_ICONS: Record<string, typeof Home> = {
+  house: Home,
+  x: X,
+  star: Star,
+  skull: Skull,
+  flame: Flame,
+  pin: MapPin,
+  crown: Crown,
+  target: Crosshair,
+  eye: Eye,
+}
+
+// A row of icon choices (plus an "Aa" letters option) shared by the chip
+// editor and the add-chip panel.
+function IconPicker({ value, onChange }: { value?: string; onChange: (icon: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      <button
+        type="button"
+        title="Letters"
+        onClick={() => onChange('')}
+        className={cn(
+          'flex h-6 w-6 items-center justify-center rounded border-2 text-[10px] font-bold',
+          !value ? 'border-white' : 'border-transparent bg-muted text-muted-foreground',
+        )}
+      >
+        Aa
+      </button>
+      {Object.entries(TOKEN_ICONS).map(([key, Icon]) => (
+        <button
+          key={key}
+          type="button"
+          title={key}
+          onClick={() => onChange(key)}
+          className={cn(
+            'flex h-6 w-6 items-center justify-center rounded border-2',
+            value === key ? 'border-white' : 'border-transparent bg-muted text-muted-foreground',
+          )}
+        >
+          <Icon className="h-3.5 w-3.5" />
+        </button>
+      ))}
+    </div>
+  )
+}
 
 const BUILT_IN_MAPS = [
   { id: 'doskvol-detailed', label: 'Doskvol (Detailed)', src: '/maps/doskvol-detailed.png' },
@@ -108,6 +156,7 @@ export function GameMap({ isGM }: { isGM: boolean }) {
   const [adding, setAdding] = useState(false)
   const [newLabel, setNewLabel] = useState('')
   const [newColor, setNewColor] = useState(TOKEN_PALETTE[0])
+  const [newIcon, setNewIcon] = useState('')
 
   const [tool, setTool] = useState<Tool>('move')
   const [remoteCursors, setRemoteCursors] = useState<Record<string, RemoteCursor>>({})
@@ -495,10 +544,12 @@ export function GameMap({ isGM }: { isGM: boolean }) {
       x: 50,
       y: 50,
       owner: sessionId,
+      ...(newIcon ? { icon: newIcon } : {}),
     }
     addMapToken(t)
     broadcast('token-add', t)
     setNewLabel('')
+    setNewIcon('')
     setAdding(false)
   }
 
@@ -745,7 +796,10 @@ export function GameMap({ isGM }: { isGM: boolean }) {
                     )}
                     style={{ backgroundColor: token.color }}
                   >
-                    {token.label.slice(0, 2).toUpperCase()}
+                    {(() => {
+                      const Icon = token.icon ? TOKEN_ICONS[token.icon] : undefined
+                      return Icon ? <Icon className="h-3.5 w-3.5" /> : token.label.slice(0, 2).toUpperCase()
+                    })()}
                   </div>
                 )}
                 <span
@@ -835,6 +889,9 @@ export function GameMap({ isGM }: { isGM: boolean }) {
               />
             ))}
           </div>
+          <div className="mt-2">
+            <IconPicker value={editTok.icon} onChange={(icon) => applyTokenEdit(editTok.id, { icon })} />
+          </div>
           <div className="mt-2 flex gap-1">
             <Button size="sm" variant="destructive" className="h-6 flex-1 gap-1 text-xs" onClick={() => handleRemove(editTok.id)}>
               <Trash2 className="h-3 w-3" /> Delete
@@ -908,6 +965,7 @@ export function GameMap({ isGM }: { isGM: boolean }) {
                     />
                   ))}
                 </div>
+                <IconPicker value={newIcon} onChange={setNewIcon} />
                 <div className="flex gap-1">
                   <Button size="sm" className="h-6 flex-1 text-xs" onClick={handleAdd}>
                     Add

@@ -29,6 +29,18 @@ const TOKEN_ICONS: Record<string, typeof Home> = {
   eye: Eye,
 }
 
+// Icons whose closed shapes read well solid-filled; the rest stay outline so
+// their internal detail (e.g. crosshair lines, eye iris) survives.
+const FILLED_ICONS = new Set(['house', 'star', 'skull', 'pin', 'crown'])
+
+// Marker dimensions per token size (box = avatar/initials circle, text = the
+// initials, icon = a standalone icon chip).
+const TOKEN_SIZES: Record<'sm' | 'md' | 'lg', { box: string; text: string; icon: string }> = {
+  sm: { box: 'h-4 w-4', text: 'text-[8px]', icon: 'h-5 w-5' },
+  md: { box: 'h-6 w-6', text: 'text-[10px]', icon: 'h-7 w-7' },
+  lg: { box: 'h-9 w-9', text: 'text-[13px]', icon: 'h-11 w-11' },
+}
+
 // A row of icon choices (plus an "Aa" letters option) shared by the chip
 // editor and the add-chip panel.
 function IconPicker({ value, onChange }: { value?: string; onChange: (icon: string) => void }) {
@@ -87,6 +99,17 @@ function colorFromId(id: string): string {
   let h = 0
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
   return TOKEN_PALETTE[h % TOKEN_PALETTE.length]
+}
+
+// Black or white text for legibility on a given hex background (perceived
+// luminance). Used for the colored label pills under map tokens.
+function textOn(hex: string): string {
+  const h = hex.replace('#', '')
+  if (h.length < 6) return '#fff'
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? '#000' : '#fff'
 }
 
 function CursorArrow({ color }: { color: string }) {
@@ -761,6 +784,7 @@ export function GameMap({ isGM }: { isGM: boolean }) {
             const char = token.characterId ? characters.find(c => c.id === token.characterId) : null
             if (token.characterId && !char) return null
             const dragging = drag?.id === token.id
+            const sz = TOKEN_SIZES[token.size ?? 'md']
             return (
               <div
                 key={token.id}
@@ -786,25 +810,38 @@ export function GameMap({ isGM }: { isGM: boolean }) {
                   >
                     {/* pointer-events-none so the browser's native image drag
                         doesn't hijack the token drag; the parent handles it. */}
-                    <CharacterAvatar character={char} size="sm" className="pointer-events-none h-6 w-6 select-none border-2 border-background" />
+                    <CharacterAvatar character={char} size="sm" className={cn('pointer-events-none select-none border-2 border-background', sz.box)} />
                   </div>
-                ) : (
-                  <div
-                    className={cn(
-                      'flex h-6 w-6 items-center justify-center rounded-full border-2 border-white/80 text-[10px] font-bold text-white shadow-lg shadow-black/40',
-                      dragging && 'ring-2 ring-white/60 scale-110',
-                    )}
-                    style={{ backgroundColor: token.color }}
-                  >
-                    {(() => {
-                      const Icon = token.icon ? TOKEN_ICONS[token.icon] : undefined
-                      return Icon ? <Icon className="h-3.5 w-3.5" /> : token.label.slice(0, 2).toUpperCase()
-                    })()}
-                  </div>
-                )}
+                ) : (() => {
+                  const Icon = token.icon ? TOKEN_ICONS[token.icon] : undefined
+                  // An icon chip is just the icon (no circle), filled in the
+                  // token color with a dark halo so it reads on a busy map.
+                  return Icon ? (
+                    <Icon
+                      className={cn(sz.icon, 'transition-transform', dragging && 'scale-110')}
+                      strokeWidth={2.25}
+                      style={{
+                        color: token.color,
+                        fill: token.icon && FILLED_ICONS.has(token.icon) ? token.color : 'none',
+                        filter: 'drop-shadow(0 0 1.5px rgba(0,0,0,0.9)) drop-shadow(0 1px 1px rgba(0,0,0,0.5))',
+                      }}
+                    />
+                  ) : (
+                    <div
+                      className={cn(
+                        'flex items-center justify-center rounded-full border-2 border-white/80 font-bold text-white shadow-lg shadow-black/40',
+                        sz.box, sz.text,
+                        dragging && 'ring-2 ring-white/60 scale-110',
+                      )}
+                      style={{ backgroundColor: token.color }}
+                    >
+                      {token.label.slice(0, 2).toUpperCase()}
+                    </div>
+                  )
+                })()}
                 <span
-                  className="mt-0.5 whitespace-nowrap text-[10px] font-bold"
-                  style={{ color: token.color }}
+                  className="mt-0.5 whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-bold leading-none shadow-sm"
+                  style={{ backgroundColor: token.color, color: textOn(token.color) }}
                 >
                   {char ? (char.alias || char.name) : token.label}
                 </span>
@@ -891,6 +928,20 @@ export function GameMap({ isGM }: { isGM: boolean }) {
           </div>
           <div className="mt-2">
             <IconPicker value={editTok.icon} onChange={(icon) => applyTokenEdit(editTok.id, { icon })} />
+          </div>
+          <div className="mt-2 flex gap-1">
+            {(['sm', 'md', 'lg'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => applyTokenEdit(editTok.id, { size: s })}
+                className={cn(
+                  'flex-1 rounded border-2 py-0.5 text-[10px] font-medium uppercase',
+                  (editTok.size ?? 'md') === s ? 'border-white bg-accent' : 'border-transparent bg-muted text-muted-foreground',
+                )}
+              >
+                {s === 'sm' ? 'Small' : s === 'md' ? 'Medium' : 'Large'}
+              </button>
+            ))}
           </div>
           <div className="mt-2 flex gap-1">
             <Button size="sm" variant="destructive" className="h-6 flex-1 gap-1 text-xs" onClick={() => handleRemove(editTok.id)}>

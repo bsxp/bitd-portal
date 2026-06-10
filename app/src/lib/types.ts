@@ -211,6 +211,8 @@ export interface MapToken {
   // Optional icon key (see TOKEN_ICONS in GameMap) shown instead of the
   // label's initials. Empty/absent falls back to initials.
   icon?: string
+  // Marker size; absent = medium.
+  size?: 'sm' | 'md' | 'lg'
   // When set, this is a character's avatar token (auto-managed, one per
   // character). Its picture/name derive from the live character; only that
   // character's player — or the GM — may move it. Id is `char:<characterId>`.

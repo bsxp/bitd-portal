@@ -733,7 +733,9 @@ export function GameMap({ isGM }: { isGM: boolean }) {
                     className={cn('rounded-full transition-transform', dragging && 'scale-110')}
                     style={{ boxShadow: `0 0 0 2px ${token.color}, 0 2px 6px rgba(0,0,0,0.5)` }}
                   >
-                    <CharacterAvatar character={char} size="sm" className="h-6 w-6 border-2 border-background" />
+                    {/* pointer-events-none so the browser's native image drag
+                        doesn't hijack the token drag; the parent handles it. */}
+                    <CharacterAvatar character={char} size="sm" className="pointer-events-none h-6 w-6 select-none border-2 border-background" />
                   </div>
                 ) : (
                   <div

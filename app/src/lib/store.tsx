@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
-import type { Character, Crew, Clock, Faction, CampaignRole, MapToken, Score, Media } from './types'
+import type { Character, Crew, Clock, Faction, CampaignRole, MapToken, Score, Media, CodexEntry } from './types'
 import { supabase } from './supabase'
 import {
   loadOrSeedCampaign, loadCampaignData, getCampaign,
@@ -30,18 +30,20 @@ interface PutPayload {
   completedScore?: Score
   mapImageUrl?: string | null
   media?: Media[]
+  codex?: CodexEntry[]
 }
 interface RemovePayload {
   clockIds?: string[]
   factionIds?: string[]
   characterIds?: string[]
   mediaIds?: string[]
+  codexIds?: string[]
 }
 
 // A single-entity, single-field-set update. Broadcast for live edits so peers
 // merge only the changed keys (see applyPatch) and persisted via the
 // merge_entity RPC so the database row is merged, not overwritten.
-type EntityKind = 'character' | 'crew' | 'clock' | 'faction' | 'score'
+type EntityKind = 'character' | 'crew' | 'clock' | 'faction' | 'score' | 'codex'
 interface PatchPayload {
   entity?: EntityKind
   id?: string
@@ -49,8 +51,8 @@ interface PatchPayload {
 }
 
 // Maps a patchable entity kind to its backing jsonb table for merge_entity.
-const PATCH_TABLE: Record<EntityKind, 'characters' | 'crews' | 'clocks' | 'factions' | 'scores'> = {
-  character: 'characters', crew: 'crews', clock: 'clocks', faction: 'factions', score: 'scores',
+const PATCH_TABLE: Record<EntityKind, 'characters' | 'crews' | 'clocks' | 'factions' | 'scores' | 'codex'> = {
+  character: 'characters', crew: 'crews', clock: 'clocks', faction: 'factions', score: 'scores', codex: 'codex',
 }
 
 type ToastInput = Omit<ToastItem, 'id'>
@@ -132,6 +134,7 @@ interface GameState {
   currentScore: Score | null
   scoreHistory: Score[]
   media: Media[]
+  codex: CodexEntry[]
 }
 
 interface GameActions {
@@ -158,6 +161,9 @@ interface GameActions {
   abandonScore: () => void
   addMedia: (item: Media) => void
   deleteMedia: (id: string) => void
+  addCodexEntry: (entry: CodexEntry) => void
+  updateCodexEntry: (id: string, updates: Partial<CodexEntry>) => void
+  deleteCodexEntry: (id: string) => void
   resetGame: () => void
 }
 
@@ -223,6 +229,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
   const [currentScore, setCurrentScore] = useState<Score | null>(null)
   const [scoreHistory, setScoreHistory] = useState<Score[]>([])
   const [media, setMedia] = useState<Media[]>([])
+  const [codex, setCodex] = useState<CodexEntry[]>([])
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const stateRef = useRef({ characters, crew, clocks, factions, currentScore, mapTokens })
@@ -243,6 +250,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
     }
     if ('mapImageUrl' in p) setMapImage(p.mapImageUrl ?? null)
     if (p.media) setMedia((prev) => upsertMany(prev, p.media!))
+    if (p.codex) setCodex((prev) => upsertMany(prev, p.codex!))
   }, [])
 
   const applyRemove = useCallback((p: RemovePayload) => {
@@ -250,6 +258,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
     if (p.factionIds) setFactions((prev) => prev.filter((f) => !p.factionIds!.includes(f.id)))
     if (p.characterIds) setCharacters((prev) => prev.filter((c) => !p.characterIds!.includes(c.id)))
     if (p.mediaIds) setMedia((prev) => prev.filter((m) => !p.mediaIds!.includes(m.id)))
+    if (p.codexIds) setCodex((prev) => prev.filter((e) => !p.codexIds!.includes(e.id)))
   }, [])
 
   // Field-level merge of a partial update into a single entity by id. Used for
@@ -262,6 +271,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
       case 'clock': setClocks((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c))); break
       case 'faction': setFactions((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f))); break
       case 'score': setCurrentScore((prev) => (prev && prev.id === id ? { ...prev, ...patch } : prev)); break
+      case 'codex': setCodex((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e))); break
     }
   }, [])
 
@@ -279,7 +289,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
   // Per-id updated_at guard drops stale echoes so a late older row can't revert
   // a newer applied one. These are silent (no toasts — broadcasts handle those).
   const lastSeenRef = useRef<Record<string, string>>({})
-  type ServerTable = 'characters' | 'crews' | 'clocks' | 'factions' | 'scores' | 'map_tokens' | 'media'
+  type ServerTable = 'characters' | 'crews' | 'clocks' | 'factions' | 'scores' | 'map_tokens' | 'media' | 'codex'
 
   const upsertServerEntity = useCallback((table: ServerTable, data: { id: string; status?: string }, updatedAt?: string) => {
     const id = data?.id
@@ -295,6 +305,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
       case 'factions': setFactions((prev) => upsertMany(prev, [data as unknown as Faction])); break
       case 'map_tokens': setMapTokens((prev) => upsertMany(prev, [data as unknown as MapToken])); break
       case 'media': setMedia((prev) => upsertMany(prev, [data as unknown as Media])); break
+      case 'codex': setCodex((prev) => upsertMany(prev, [data as unknown as CodexEntry])); break
       case 'scores': {
         const s = data as unknown as Score
         if (s.status === 'completed') {
@@ -317,6 +328,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
       case 'factions': setFactions((prev) => prev.filter((f) => f.id !== id)); break
       case 'map_tokens': setMapTokens((prev) => prev.filter((t) => t.id !== id)); break
       case 'media': setMedia((prev) => prev.filter((m) => m.id !== id)); break
+      case 'codex': setCodex((prev) => prev.filter((e) => e.id !== id)); break
       case 'scores':
         setCurrentScore((prev) => (prev && prev.id === id ? null : prev))
         setScoreHistory((prev) => prev.filter((s) => s.id !== id))
@@ -335,6 +347,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
     setScoreHistory(data.scoreHistory)
     setMapTokens(data.mapTokens)
     setMedia(data.media)
+    setCodex(data.codex)
     setActiveCharacter((prev) => prev ?? data.characters[0]?.id ?? null)
   }, [])
 
@@ -356,6 +369,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
   const persistFactions = useCallback((fs: Faction[]) => { saveEntities('factions', campaignId, fs).catch(onErr) }, [campaignId])
   const persistScore = useCallback((s: Score) => { saveEntity('scores', campaignId, s).catch(onErr) }, [campaignId])
   const persistMedia = useCallback((ms: Media[]) => { saveEntities('media', campaignId, ms).catch(onErr) }, [campaignId])
+  const persistCodex = useCallback((es: CodexEntry[]) => { saveEntities('codex', campaignId, es).catch(onErr) }, [campaignId])
 
   // Apply a single-field-set update locally, broadcast it to peers as a 'patch'
   // (they merge only these keys), and persist it via the merge_entity RPC so the
@@ -418,6 +432,22 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
   const deleteMedia = useCallback((id: string) => {
     const p = { mediaIds: [id] }
     applyRemove(p); broadcast('remove', p); deleteEntity('media', id).catch(onErr)
+  }, [applyRemove, broadcast])
+
+  // Codex: shared free-form notes anyone can add/edit. Each note is its own row
+  // (concurrent additions never clobber); edits field-merge via merge_entity.
+  const addCodexEntry = useCallback((entry: CodexEntry) => {
+    const p = { codex: [entry] }
+    applyPut(p); broadcast('put', p); persistCodex([entry])
+  }, [applyPut, broadcast, persistCodex])
+
+  const updateCodexEntry = useCallback((id: string, updates: Partial<CodexEntry>) => {
+    commitPatch('codex', id, updates as Record<string, unknown>)
+  }, [commitPatch])
+
+  const deleteCodexEntry = useCallback((id: string) => {
+    const p = { codexIds: [id] }
+    applyRemove(p); broadcast('remove', p); deleteEntity('codex', id).catch(onErr)
   }, [applyRemove, broadcast])
 
   // Map tokens: live drag sync runs on a dedicated channel inside GameMap
@@ -626,7 +656,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
   useEffect(() => {
     let cancelled = false
     let subscribedOnce = false
-    const ENTITY_TABLES: ServerTable[] = ['characters', 'crews', 'clocks', 'factions', 'scores', 'map_tokens', 'media']
+    const ENTITY_TABLES: ServerTable[] = ['characters', 'crews', 'clocks', 'factions', 'scores', 'map_tokens', 'media', 'codex']
 
     const resync = () => {
       Promise.all([loadCampaignData(campaignId), getCampaign(campaignId)])
@@ -730,6 +760,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
         endScore,
         currentScore, scoreHistory, startScore, updateScore, wrapScore, abandonScore,
         media, addMedia, deleteMedia,
+        codex, addCodexEntry, updateCodexEntry, deleteCodexEntry,
         resetGame,
       }}
     >

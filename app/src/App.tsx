@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select'
 import { CharacterSheet } from '@/components/CharacterSheet'
 import { CrewSheet } from '@/components/CrewSheet'
+import { CodexPanel } from '@/components/CodexPanel'
 import { ClockDashboard } from '@/components/ClockDashboard'
 import { FactionTracker } from '@/components/FactionTracker'
 import { Overview } from '@/components/Overview'
@@ -30,7 +31,7 @@ import { GameProvider, useGame } from '@/lib/store'
 import { SessionProvider, useSession } from '@/lib/session'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn, displayName } from '@/lib/utils'
-import { Shield, Users, Clock, Swords, Eye, EyeOff, Plus, Home, Map, Target, Loader2, LogOut, TrendingUp, Flame, Coins, Wrench, RotateCcw } from 'lucide-react'
+import { Shield, Users, Clock, Swords, Eye, EyeOff, Plus, Home, Map, Target, Loader2, LogOut, TrendingUp, Flame, Coins, Wrench, RotateCcw, BookOpen } from 'lucide-react'
 import type { Clock as ClockType, ClockScope } from '@/lib/types'
 import type { OnlinePlayer } from '@/lib/store'
 
@@ -287,6 +288,10 @@ function AppContent() {
               <Shield className="h-4 w-4" />
               Crew
             </TabsTrigger>
+            <TabsTrigger value="codex" className="gap-1.5">
+              <BookOpen className="h-4 w-4" />
+              Codex
+            </TabsTrigger>
             <TabsTrigger value="clocks" className="gap-1.5">
               <Clock className="h-4 w-4" />
               Clocks
@@ -375,6 +380,11 @@ function AppContent() {
                 readonly={!isGM}
               />
             )}
+          </TabsContent>
+
+          {/* Codex Tab */}
+          <TabsContent value="codex">
+            <CodexPanel />
           </TabsContent>
 
           {/* Clocks Tab */}

@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { makeDemoData, type CampaignData } from './demo-data'
-import type { Character, Crew, Clock, Faction, Score, MapToken, Media } from './types'
+import type { Character, Crew, Clock, Faction, Score, MapToken, Media, CodexEntry } from './types'
 
 // The Supabase client is configured with the `bitd` schema. Each entity table
 // stores the full typed object in a `data` jsonb column keyed by its own id.
@@ -12,7 +12,7 @@ export interface CampaignRow {
   map_image_url: string | null
 }
 
-type EntityTable = 'characters' | 'crews' | 'clocks' | 'factions' | 'scores' | 'map_tokens' | 'media'
+type EntityTable = 'characters' | 'crews' | 'clocks' | 'factions' | 'scores' | 'map_tokens' | 'media' | 'codex'
 
 export async function findCampaignByCode(code: string): Promise<CampaignRow | null> {
   const { data, error } = await supabase
@@ -41,7 +41,7 @@ async function loadTable<T>(table: EntityTable, campaignId: string): Promise<T[]
 }
 
 export async function loadCampaignData(campaignId: string): Promise<CampaignData> {
-  const [characters, crews, clocks, factions, scores, mapTokens, media] = await Promise.all([
+  const [characters, crews, clocks, factions, scores, mapTokens, media, codex] = await Promise.all([
     loadTable<Character>('characters', campaignId),
     loadTable<Crew>('crews', campaignId),
     loadTable<Clock>('clocks', campaignId),
@@ -49,6 +49,7 @@ export async function loadCampaignData(campaignId: string): Promise<CampaignData
     loadTable<Score>('scores', campaignId),
     loadTable<MapToken>('map_tokens', campaignId),
     loadTable<Media>('media', campaignId),
+    loadTable<CodexEntry>('codex', campaignId),
   ])
   // A campaign has at most one active/planning score; the rest are completed
   // history, newest first.
@@ -65,6 +66,7 @@ export async function loadCampaignData(campaignId: string): Promise<CampaignData
     scoreHistory,
     mapTokens,
     media,
+    codex,
   }
 }
 

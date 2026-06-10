@@ -225,3 +225,14 @@ export interface Media {
   filename: string | null
   created_at: string
 }
+
+// A free-form shared note (the crew "Codex"): people, places, rumors, anything
+// the table wants to remember. Anyone may add or edit. Each note is its own
+// realtime-synced row so concurrent additions don't clobber each other.
+export interface CodexEntry {
+  id: string
+  campaign_id: string
+  title: string
+  body: string
+  created_at: string
+}

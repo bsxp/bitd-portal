@@ -398,7 +398,6 @@ export function GameMap({ isGM }: { isGM: boolean }) {
     // Live cursor tracking (always, regardless of tool/drag)
     const el = containerRef.current
     if (el) {
-      const r = el.getBoundingClientRect()
       const now = Date.now()
       if (now - cursorThrottleRef.current > 30) {
         cursorThrottleRef.current = now

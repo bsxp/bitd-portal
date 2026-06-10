@@ -388,7 +388,7 @@ export const PLAYBOOK_ITEMS: Record<Playbook, GameItem[]> = {
   ],
   lurk: [
     { name: 'Fine lockpicks', load: 1 },
-    { name: 'Fine shadow cloak', load: 2 },
+    { name: 'Fine shadow cloak', load: 1 },
     { name: 'Light climbing gear', load: 1 },
     { name: 'Silence potion vial', load: 1 },
     { name: 'Dark-sight goggles', load: 1 },

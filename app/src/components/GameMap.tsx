@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { Plus, Minus, RotateCcw, Upload, Trash2, X, Users, ChevronDown, ImageIcon, Hand, Pencil, Radio } from 'lucide-react'
+import { CharacterAvatar } from '@/components/CharacterAvatar'
 import type { MapToken } from '@/lib/types'
 
 const TOKEN_PALETTE = [
@@ -51,10 +52,23 @@ function CursorArrow({ color }: { color: string }) {
 export function GameMap({ isGM }: { isGM: boolean }) {
   const {
     mapTokens, updateMapToken, addMapToken, removeMapToken, commitMapToken, editMapToken,
-    mapImageUrl, setMapImage, campaignId, onlinePlayers,
+    mapImageUrl, setMapImage, campaignId, onlinePlayers, characters,
   } = useGame()
   const { session, sessionId } = useSession()
-  const myName = session?.seat?.name ?? 'Player'
+  // Label cursors with the character's nickname (alias) when they have one,
+  // falling back to their full name / seat name.
+  const myName = useMemo(() => {
+    const seat = session?.seat
+    if (!seat) return 'Player'
+    if (seat.type === 'character') {
+      const me = characters.find((c) => c.id === seat.id)
+      return me?.alias || me?.name || seat.name
+    }
+    return seat.name
+  }, [session, characters])
+  // The character this client controls (null for the GM seat); used to gate
+  // who may move each character token.
+  const mySeatCharId = session?.seat?.type === 'character' ? session.seat.id : null
   // Give each online person a distinct cursor color: take a stable palette slot
   // by this session's index among the (sorted) online session ids, so no two
   // people collide. Falls back to a hash of the id before presence has synced.
@@ -100,7 +114,6 @@ export function GameMap({ isGM }: { isGM: boolean }) {
   const [strokes, setStrokes] = useState<Stroke[]>([])
   const [drawing, setDrawing] = useState<Stroke | null>(null)
   const [pings, setPings] = useState<MapPing[]>([])
-  const [localCursor, setLocalCursor] = useState<Pt | null>(null)
   const [clock, setClock] = useState(0)
 
   // Chip editor: the id of the chip whose rename/recolor/delete menu is open
@@ -176,6 +189,32 @@ export function GameMap({ isGM }: { isGM: boolean }) {
       channelRef.current?.send({ type: 'broadcast', event, payload })
     } catch { /* ignore */ }
   }
+
+  // Make sure every character has a movable avatar token on the map. A player
+  // spawns their own; the GM backfills all (covers players who never open the
+  // map). The deterministic `char:<id>` id keeps this idempotent — concurrent
+  // clients converge on the same row, and once one exists it's never re-created.
+  useEffect(() => {
+    if (!characters.length) return
+    const targets = isGM ? characters : characters.filter((c) => c.id === mySeatCharId)
+    for (const char of targets) {
+      const id = `char:${char.id}`
+      if (mapTokens.some((t) => t.id === id)) continue
+      const i = characters.findIndex((c) => c.id === char.id)
+      const token: MapToken = {
+        id,
+        characterId: char.id,
+        label: char.name,
+        color: colorFromId(char.id),
+        // Tidy starting cluster in the top-left so they don't stack exactly.
+        x: 8 + (i % 6) * 6,
+        y: 10 + Math.floor(i / 6) * 8,
+      }
+      addMapToken(token)
+      broadcast('token-add', token)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [characters, mapTokens, isGM, mySeatCharId])
 
   // Animation loop: advance the clock for fade calculations and prune expired
   // ephemeral overlays. Runs only while something ephemeral exists.
@@ -360,7 +399,6 @@ export function GameMap({ isGM }: { isGM: boolean }) {
     const el = containerRef.current
     if (el) {
       const r = el.getBoundingClientRect()
-      setLocalCursor({ x: e.clientX - r.left, y: e.clientY - r.top })
       const now = Date.now()
       if (now - cursorThrottleRef.current > 30) {
         cursorThrottleRef.current = now
@@ -414,8 +452,9 @@ export function GameMap({ isGM }: { isGM: boolean }) {
       const t = mapTokens.find(t => t.id === drag.id)
       if (!dragMovedRef.current) {
         // A tap (not a drag): open the rename/recolor/delete menu, if this
-        // viewer owns the chip or is the GM.
-        if (t && (isGM || t.owner === sessionId)) {
+        // viewer owns the chip or is the GM. Character tokens aren't editable
+        // here — their name/picture come from the character sheet.
+        if (t && !t.characterId && (isGM || t.owner === sessionId)) {
           setEditing(t.id)
           setEditLabel(t.label)
         }
@@ -428,7 +467,6 @@ export function GameMap({ isGM }: { isGM: boolean }) {
   }
 
   function onLeave() {
-    setLocalCursor(null)
     broadcast('cursor-leave', { id: sessionId })
   }
 
@@ -489,18 +527,12 @@ export function GameMap({ isGM }: { isGM: boolean }) {
     return Math.max(0, 0.85 * (1 - (age - STROKE_HOLD) / STROKE_FADE))
   }
 
-  // Is a point (map %) close to my own cursor? (used to reveal a cursor's name)
-  function nearLocal(x: number, y: number): boolean {
-    if (!localCursor) return false
-    const rx = view.x + (x / 100 * surface.width) * view.scale
-    const ry = view.y + (y / 100 * surface.height) * view.scale
-    const dx = rx - localCursor.x
-    const dy = ry - localCursor.y
-    return dx * dx + dy * dy < 36 * 36
-  }
-
   const toolCursor = tool === 'draw' ? 'cursor-crosshair' : tool === 'ping' ? 'cursor-pointer'
     : drag?.mode === 'pan' ? 'cursor-grabbing' : drag ? 'cursor-default' : 'cursor-grab'
+
+  // The manual chip panel manages freeform chips only; character avatar tokens
+  // are auto-managed and never added/removed here.
+  const chipTokens = mapTokens.filter(t => !t.characterId)
 
   const TOOLS: { id: Tool; icon: typeof Hand; label: string }[] = [
     { id: 'move', icon: Hand, label: 'Move & pan' },
@@ -673,41 +705,57 @@ export function GameMap({ isGM }: { isGM: boolean }) {
           </svg>
 
           {/* Tokens */}
-          {mapTokens.map(token => (
-            <div
-              key={token.id}
-              data-token-id={token.id}
-              className={cn(
-                'absolute flex flex-col items-center',
-                drag?.id === token.id ? 'z-50 cursor-grabbing' : 'cursor-grab',
-                // In draw/ping mode chips are click-through so strokes/pings can
-                // start anywhere, even on top of a chip.
-                tool !== 'move' && 'pointer-events-none',
-              )}
-              style={{
-                left: `${token.x}%`,
-                top: `${token.y}%`,
-                transform: `translate(-50%, -50%) scale(${1 / view.scale})`,
-                transition: drag?.id === token.id ? 'none' : 'left 120ms ease-out, top 120ms ease-out',
-              }}
-            >
+          {mapTokens.map(token => {
+            // Character tokens derive their picture/name from the live
+            // character; a deleted character's orphan token is hidden.
+            const char = token.characterId ? characters.find(c => c.id === token.characterId) : null
+            if (token.characterId && !char) return null
+            const dragging = drag?.id === token.id
+            return (
               <div
+                key={token.id}
+                data-token-id={token.id}
                 className={cn(
-                  'flex h-6 w-6 items-center justify-center rounded-full border-2 border-white/80 text-[10px] font-bold text-white shadow-lg shadow-black/40',
-                  drag?.id === token.id && 'ring-2 ring-white/60 scale-110',
+                  'absolute flex flex-col items-center',
+                  dragging ? 'z-50 cursor-grabbing' : 'cursor-grab',
+                  // In draw/ping mode chips are click-through so strokes/pings can
+                  // start anywhere, even on top of a chip.
+                  tool !== 'move' && 'pointer-events-none',
                 )}
-                style={{ backgroundColor: token.color }}
+                style={{
+                  left: `${token.x}%`,
+                  top: `${token.y}%`,
+                  transform: `translate(-50%, -50%) scale(${1 / view.scale})`,
+                  transition: dragging ? 'none' : 'left 120ms ease-out, top 120ms ease-out',
+                }}
               >
-                {token.label.slice(0, 2).toUpperCase()}
+                {char ? (
+                  <div
+                    className={cn('rounded-full transition-transform', dragging && 'scale-110')}
+                    style={{ boxShadow: `0 0 0 2px ${token.color}, 0 2px 6px rgba(0,0,0,0.5)` }}
+                  >
+                    <CharacterAvatar character={char} size="sm" className="h-6 w-6 border-2 border-background" />
+                  </div>
+                ) : (
+                  <div
+                    className={cn(
+                      'flex h-6 w-6 items-center justify-center rounded-full border-2 border-white/80 text-[10px] font-bold text-white shadow-lg shadow-black/40',
+                      dragging && 'ring-2 ring-white/60 scale-110',
+                    )}
+                    style={{ backgroundColor: token.color }}
+                  >
+                    {token.label.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <span
+                  className="mt-0.5 whitespace-nowrap text-[10px] font-bold"
+                  style={{ color: token.color }}
+                >
+                  {char ? (char.alias || char.name) : token.label}
+                </span>
               </div>
-              <span
-                className="mt-0.5 whitespace-nowrap text-[10px] font-bold"
-                style={{ color: token.color }}
-              >
-                {token.label}
-              </span>
-            </div>
-          ))}
+            )
+          })}
 
           {/* Pings */}
           {pings.map((p) => (
@@ -732,14 +780,12 @@ export function GameMap({ isGM }: { isGM: boolean }) {
                 style={{ left: `${dp.x}%`, top: `${dp.y}%`, transform: `scale(${1 / view.scale})`, transformOrigin: 'top left' }}
               >
                 <CursorArrow color={c.color} />
-                {nearLocal(dp.x, dp.y) && (
-                  <span
-                    className="absolute left-4 top-4 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold text-white shadow-md"
-                    style={{ backgroundColor: c.color }}
-                  >
-                    {c.name}
-                  </span>
-                )}
+                <span
+                  className="absolute left-4 top-4 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold text-white shadow-md"
+                  style={{ backgroundColor: c.color }}
+                >
+                  {c.name}
+                </span>
               </div>
             )
           })}
@@ -811,7 +857,7 @@ export function GameMap({ isGM }: { isGM: boolean }) {
         >
           <span className="flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5" />
-            Tokens ({mapTokens.length})
+            Tokens ({chipTokens.length})
           </span>
           <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', panel && 'rotate-180')} />
         </button>
@@ -819,7 +865,7 @@ export function GameMap({ isGM }: { isGM: boolean }) {
         {panel && (
           <div className="border-t px-2 py-1.5">
             <div className="max-h-48 space-y-0.5 overflow-y-auto">
-              {mapTokens.map(token => (
+              {chipTokens.map(token => (
                 <div key={token.id} className="flex items-center gap-2 rounded px-1.5 py-1 text-xs hover:bg-accent/50">
                   <div
                     className="h-4 w-4 shrink-0 rounded-full border border-white/20"

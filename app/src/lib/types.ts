@@ -208,6 +208,10 @@ export interface MapToken {
   // can remove only chips they own. Seeded/legacy chips have no owner and are
   // GM-only to remove.
   owner?: string
+  // When set, this is a character's avatar token (auto-managed, one per
+  // character). Its picture/name derive from the live character; only that
+  // character's player — or the GM — may move it. Id is `char:<characterId>`.
+  characterId?: string
 }
 
 // GM-uploaded media (images / audio) shared with the whole table, shown in the

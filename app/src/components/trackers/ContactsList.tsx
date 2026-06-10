@@ -11,6 +11,14 @@ interface ContactsListProps {
   readonly?: boolean
 }
 
+const RELATIONSHIP_ORDER: CharacterContact['relationship'][] = ['friend', 'rival', 'other']
+
+const RELATIONSHIP_DOT: Record<CharacterContact['relationship'], string> = {
+  friend: 'bg-green-400',
+  rival: 'bg-red-400',
+  other: 'bg-muted-foreground/70',
+}
+
 export function ContactsList({ contacts, onChange, readonly }: ContactsListProps) {
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState('')
@@ -28,6 +36,40 @@ export function ContactsList({ contacts, onChange, readonly }: ContactsListProps
     onChange(contacts.filter((_, i) => i !== index))
   }
 
+  // Cycle a contact's standing friend → rival → other so it can be reassigned
+  // any time, not just when first added.
+  function cycleRelationship(index: number) {
+    const order = RELATIONSHIP_ORDER
+    const next = order[(order.indexOf(contacts[index].relationship) + 1) % order.length]
+    onChange(contacts.map((c, i) => (i === index ? { ...c, relationship: next } : c)))
+  }
+
+  function renderRow(c: CharacterContact, key: number) {
+    const idx = contacts.indexOf(c)
+    return (
+      <div key={key} className="flex items-center gap-2 text-sm">
+        {readonly ? (
+          <span className={cn('h-2.5 w-2.5 rounded-full', RELATIONSHIP_DOT[c.relationship])} />
+        ) : (
+          <button
+            onClick={() => cycleRelationship(idx)}
+            title="Click to change: friend / rival / other"
+            className={cn('h-2.5 w-2.5 rounded-full transition-transform hover:scale-125', RELATIONSHIP_DOT[c.relationship])}
+          />
+        )}
+        <span className="flex-1">
+          {c.name}
+          {c.description && <span className="text-xs text-muted-foreground"> — {c.description}</span>}
+        </span>
+        {!readonly && (
+          <button onClick={() => handleRemove(idx)} className="text-muted-foreground hover:text-destructive">
+            <X className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+    )
+  }
+
   const friends = contacts.filter((c) => c.relationship === 'friend')
   const rivals = contacts.filter((c) => c.relationship === 'rival')
   const others = contacts.filter((c) => c.relationship === 'other')
@@ -41,63 +83,21 @@ export function ContactsList({ contacts, onChange, readonly }: ContactsListProps
       {friends.length > 0 && (
         <div className="space-y-1">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-green-400">Friends</span>
-          {friends.map((c, i) => {
-            const idx = contacts.indexOf(c)
-            return (
-              <div key={i} className="flex items-center gap-2 text-sm">
-                <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
-                <span className="flex-1">{c.name}</span>
-                {!readonly && (
-                  <button onClick={() => handleRemove(idx)} className="text-muted-foreground hover:text-destructive">
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-            )
-          })}
+          {friends.map((c, i) => renderRow(c, i))}
         </div>
       )}
 
       {rivals.length > 0 && (
         <div className="space-y-1">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-red-400">Rivals</span>
-          {rivals.map((c, i) => {
-            const idx = contacts.indexOf(c)
-            return (
-              <div key={i} className="flex items-center gap-2 text-sm">
-                <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-                <span className="flex-1">{c.name}</span>
-                {!readonly && (
-                  <button onClick={() => handleRemove(idx)} className="text-muted-foreground hover:text-destructive">
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-            )
-          })}
+          {rivals.map((c, i) => renderRow(c, i))}
         </div>
       )}
 
       {others.length > 0 && (
         <div className="space-y-1">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Other</span>
-          {others.map((c, i) => {
-            const idx = contacts.indexOf(c)
-            return (
-              <div key={i} className="flex items-center gap-2 text-sm">
-                <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/70" />
-                <span className="flex-1">
-                  {c.name}
-                  {c.description && <span className="text-xs text-muted-foreground"> — {c.description}</span>}
-                </span>
-                {!readonly && (
-                  <button onClick={() => handleRemove(idx)} className="text-muted-foreground hover:text-destructive">
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-            )
-          })}
+          {others.map((c, i) => renderRow(c, i))}
         </div>
       )}
 

@@ -155,10 +155,11 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
         <CharacterSummary character={character} />
       </div>
 
-      {/* Everything below is the editable sheet — only the owner or GM sees it. */}
+      {/* The full sheet renders for everyone; non-owners see it read-only. */}
+
+      {/* ── PROFILE EDITOR (set-and-forget) — owner/GM only ── */}
       {!readonly && (
       <>
-      {/* ── PROFILE EDITOR (set-and-forget) ── */}
       <div>
         <button
           onClick={() => setProfileOpen(p => !p)}
@@ -264,6 +265,8 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
             </div>
           </CardContent>
         </Card>
+      )}
+      </>
       )}
 
       {/* ══════════════════════════════════════════════
@@ -585,8 +588,6 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
           </CardContent>
         </Card>
       </div>
-      </>
-      )}
     </div>
   )
 }

@@ -39,8 +39,10 @@ export function HarmTracker({
           const fields = level === 3
             ? ['harm_level3']
             : [`harm_level${level}_a`, `harm_level${level}_b`]
-          // A harm row is "active" once any of its slots holds a description.
-          const rowFilled = fields.some((f) => (harmValues[f] ?? '').trim() !== '')
+          // The penalty only applies once the whole row is full: both slots at
+          // level 1 / level 2 (or the single slot at level 3). A half-filled row
+          // shows its text but doesn't trigger the red penalty.
+          const rowFilled = fields.every((f) => (harmValues[f] ?? '').trim() !== '')
           return (
             <div
               key={level}

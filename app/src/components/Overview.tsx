@@ -8,7 +8,7 @@ import { ClockDisplay } from '@/components/trackers/ClockDisplay'
 import { MediaSection } from '@/components/MediaSection'
 import { cn } from '@/lib/utils'
 import { FACTION_STATUS_LABELS } from '@/lib/types'
-import { Minus, Plus, RotateCcw, Flame, TrendingUp, Coins, Target } from 'lucide-react'
+import { Minus, Plus, RotateCcw, Flame, TrendingUp, Coins, Target, Skull } from 'lucide-react'
 import type { Character, Crew, Clock, Faction, Score, Media } from '@/lib/types'
 
 interface OverviewProps {
@@ -372,7 +372,10 @@ function CharacterCard({
 
   return (
     <Card
-      className="flex h-full cursor-pointer flex-col transition-shadow hover:shadow-md"
+      className={cn(
+        'flex h-full cursor-pointer flex-col transition-shadow hover:shadow-md',
+        character.deceased && 'opacity-70',
+      )}
       onClick={onClick}
     >
       <CardHeader className="pb-2">
@@ -380,12 +383,20 @@ function CharacterCard({
           <CharacterAvatar character={character} size="lg" />
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-baseline gap-2">
-              <CardTitle className="truncate text-lg">{character.name}</CardTitle>
+              <CardTitle className={cn('truncate text-lg', character.deceased && 'line-through decoration-1')}>
+                {character.name}
+              </CardTitle>
               {character.alias && (
                 <span className="shrink-0 text-sm text-muted-foreground">"{character.alias}"</span>
               )}
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              {character.deceased && (
+                <Badge variant="destructive" className="flex items-center gap-1 text-[10px] uppercase">
+                  <Skull className="h-3 w-3" />
+                  Deceased
+                </Badge>
+              )}
               {character.playbook && (
                 <Badge variant="outline" className="text-xs capitalize">
                   {character.playbook}
@@ -503,13 +514,15 @@ export function Overview({
       <div>
         <h2 className="mb-3 text-lg font-semibold">Scoundrels</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {characters.map((c) => (
-            <CharacterCard
-              key={c.id}
-              character={c}
-              onClick={() => onCharacterClick(c.id)}
-            />
-          ))}
+          {[...characters]
+            .sort((a, b) => Number(a.deceased) - Number(b.deceased))
+            .map((c) => (
+              <CharacterCard
+                key={c.id}
+                character={c}
+                onClick={() => onCharacterClick(c.id)}
+              />
+            ))}
         </div>
       </div>
 

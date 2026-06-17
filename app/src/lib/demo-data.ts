@@ -52,6 +52,8 @@ function makeCharacter(campaignId: string, overrides: Partial<Character>): Chara
     ability_details: {},
     contacts: [],
     notes: null,
+    deceased: false,
+    cause_of_death: null,
     created_at: new Date().toISOString(),
     ...overrides,
   }

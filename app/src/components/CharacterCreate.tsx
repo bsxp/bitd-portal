@@ -158,6 +158,8 @@ export function CharacterCreate({ campaignId, onCancel, onCreated }: Props) {
         .filter((c) => c.name.trim())
         .map((c) => ({ name: c.name.trim(), relationship: c.relationship, description: null })),
       notes: notes.trim() || null,
+      deceased: false,
+      cause_of_death: null,
     }
 
     try {

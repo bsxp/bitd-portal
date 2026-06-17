@@ -127,6 +127,8 @@ export interface Character {
   ability_details: Record<string, string>
   contacts: CharacterContact[]
   notes: string | null
+  deceased: boolean
+  cause_of_death: string | null
   created_at: string
 }
 

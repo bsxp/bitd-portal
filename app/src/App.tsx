@@ -31,7 +31,7 @@ import { GameProvider, useGame } from '@/lib/store'
 import { SessionProvider, useSession } from '@/lib/session'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn, displayName } from '@/lib/utils'
-import { Shield, Users, Clock, Swords, Eye, EyeOff, Plus, Home, Map, Target, Loader2, LogOut, TrendingUp, Flame, Coins, Wrench, RotateCcw, BookOpen } from 'lucide-react'
+import { Shield, Users, Clock, Swords, Eye, EyeOff, Plus, Home, Map, Target, Loader2, LogOut, TrendingUp, Flame, Coins, Wrench, RotateCcw, BookOpen, Skull } from 'lucide-react'
 import type { Clock as ClockType, ClockScope, Character } from '@/lib/types'
 import type { OnlinePlayer } from '@/lib/store'
 
@@ -347,7 +347,7 @@ function AppContent() {
           {/* Characters Tab */}
           <TabsContent value="characters">
             <div className="mb-4 flex flex-wrap gap-2">
-              {characters.map((c) => (
+              {characters.filter((c) => !c.deceased).map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setActiveCharacter(c.id)}
@@ -373,6 +373,42 @@ function AppContent() {
                 </button>
               ))}
             </div>
+
+            {/* Graveyard — fallen characters, with their cause of death */}
+            {characters.some((c) => c.deceased) && (
+              <div className="mb-4">
+                <h3 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  <Skull className="h-3.5 w-3.5" />
+                  Graveyard
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {characters.filter((c) => c.deceased).map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => setActiveCharacter(c.id)}
+                      className={cn(
+                        'flex items-center gap-2 rounded-md border px-3 py-2 text-left text-sm leading-tight transition-colors',
+                        activeCharacterId === c.id
+                          ? 'border-red-500/60 bg-red-500/10'
+                          : 'border-muted hover:border-red-500/40',
+                      )}
+                    >
+                      <span className="opacity-60">
+                        <CharacterAvatar character={c} size="sm" />
+                      </span>
+                      <span className="flex flex-col items-start">
+                        <span className="font-medium text-muted-foreground line-through decoration-1">
+                          {displayName(c.name, c.alias)}
+                        </span>
+                        <span className="mt-0.5 text-[11px] font-normal text-red-600/80">
+                          † {c.cause_of_death?.trim() || 'Cause unknown'}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {activeCharacter && (
               <CharacterSheet
                 character={activeCharacter}

@@ -348,7 +348,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
     setMapTokens(data.mapTokens)
     setMedia(data.media)
     setCodex(data.codex)
-    setActiveCharacter((prev) => prev ?? data.characters[0]?.id ?? null)
+    setActiveCharacter((prev) => prev ?? (data.characters.find((c) => !c.deceased) ?? data.characters[0])?.id ?? null)
   }, [])
 
   const broadcast = useCallback((action: string, p: PutPayload | RemovePayload | PatchPayload) => {
@@ -487,7 +487,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
   }, [applyPut, broadcast, campaignId])
 
   const endScore = useCallback(() => {
-    const resetChars = stateRef.current.characters.map(resetForNewScore)
+    const resetChars = stateRef.current.characters.map((c) => (c.deceased ? c : resetForNewScore(c)))
     const resetScoreClocks = stateRef.current.clocks.filter((c) => c.scope === 'score').map((c) => ({ ...c, active: false }))
     const p: PutPayload = { characters: resetChars, clocks: resetScoreClocks }
     applyPut(p); broadcast('put', p)
@@ -521,7 +521,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
     const cappedCrew: Crew | null =
       crew && crew.coin > COIN_CAPACITY ? { ...crew, coin: COIN_CAPACITY } : null
     const cappedChars = stateRef.current.characters
-      .filter((c) => c.coin > COIN_CAPACITY)
+      .filter((c) => !c.deceased && c.coin > COIN_CAPACITY)
       .map((c) => ({ ...c, coin: COIN_CAPACITY }))
 
     const p: PutPayload = { score }
@@ -542,7 +542,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
   const wrapScore = useCallback(() => {
     const score = stateRef.current.currentScore
     const crew = stateRef.current.crew
-    const resetChars = stateRef.current.characters.map(resetForNewScore)
+    const resetChars = stateRef.current.characters.map((c) => (c.deceased ? c : resetForNewScore(c)))
     const resetScoreClocks = stateRef.current.clocks.filter((c) => c.scope === 'score').map((c) => ({ ...c, active: false }))
     let newCrew: Crew | null = crew
     if (crew && score) {
@@ -570,7 +570,7 @@ export function GameProvider({ campaignId, seat, sessionId, children }: GameProv
 
   const abandonScore = useCallback(() => {
     const score = stateRef.current.currentScore
-    const resetChars = stateRef.current.characters.map(resetForNewScore)
+    const resetChars = stateRef.current.characters.map((c) => (c.deceased ? c : resetForNewScore(c)))
     const resetScoreClocks = stateRef.current.clocks.filter((c) => c.scope === 'score').map((c) => ({ ...c, active: false }))
     const p: PutPayload = { characters: resetChars, clocks: resetScoreClocks, score: null }
     applyPut(p); broadcast('put', p)

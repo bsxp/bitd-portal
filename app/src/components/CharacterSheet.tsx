@@ -26,7 +26,7 @@ import { DebouncedText } from '@/components/DebouncedText'
 import { PLAYBOOK_XP_TRIGGERS, PLAYBOOK_ABILITIES, ABILITY_INPUTS, SPECIAL_ARMOR_ABILITIES, PLAYBOOK_MAX_STRESS } from '@/lib/game-data'
 import { HERITAGE_OPTIONS, BACKGROUND_OPTIONS, VICE_OPTIONS } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { ChevronDown, User } from 'lucide-react'
+import { ChevronDown, User, Skull } from 'lucide-react'
 import type { Character, CharacterContact, ActionName, LoadLevel } from '@/lib/types'
 
 // Special armor is granted by abilities: true if any selected ability grants it,
@@ -63,6 +63,33 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
 
   return (
     <div className="space-y-3">
+      {/* ── MEMORIAL: shown to everyone once a character has fallen ── */}
+      {character.deceased && (
+        <div className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-red-600">
+              <Skull className="h-4 w-4" />
+              Deceased
+            </span>
+            {!readonly && (
+              <Button variant="outline" size="sm" onClick={() => onUpdate({ deceased: false })}>
+                Revive
+              </Button>
+            )}
+          </div>
+          <div className="mt-2">
+            <Label className="text-xs text-muted-foreground">Cause of death</Label>
+            <DebouncedText
+              value={character.cause_of_death ?? ''}
+              onCommit={(v) => onUpdate({ cause_of_death: v || null })}
+              readonly={readonly}
+              placeholder="How did they meet their end?"
+              className="mt-1 h-8"
+            />
+          </div>
+        </div>
+      )}
+
       {/* ── HEADER: [ portrait (2/5) | summary ] — shown to everyone ── */}
       <div className="flex gap-4">
         {(character.art_url || !readonly) && (
@@ -76,7 +103,7 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
       {/* ── PROFILE EDITOR (set-and-forget) — owner/GM only ── */}
       {!readonly && (
       <>
-      <div>
+      <div className="flex items-center gap-2">
         <button
           onClick={() => setProfileOpen(p => !p)}
           className={cn(
@@ -88,6 +115,19 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
           Profile
           <ChevronDown className={cn('h-3 w-3 transition-transform', profileOpen && 'rotate-180')} />
         </button>
+        {!character.deceased && (
+          <button
+            onClick={() => {
+              if (window.confirm(`Mark ${character.name} as deceased? They'll move to the Graveyard.`)) {
+                onUpdate({ deceased: true })
+              }
+            }}
+            className="flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-red-500/50 hover:text-red-600"
+          >
+            <Skull className="h-3.5 w-3.5" />
+            Mark deceased
+          </button>
+        )}
       </div>
 
       {/* ── COLLAPSIBLE PROFILE FIELDS ── */}

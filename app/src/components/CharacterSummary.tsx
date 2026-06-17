@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { Skull } from 'lucide-react'
 import { PLAYBOOK_MAX_STRESS } from '@/lib/game-data'
 import { cn } from '@/lib/utils'
 import type { Character } from '@/lib/types'
@@ -54,6 +55,12 @@ export function CharacterSummary({ character }: { character: Character }) {
           {character.playbook && (
             <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold uppercase text-primary">
               {character.playbook}
+            </span>
+          )}
+          {character.deceased && (
+            <span className="flex items-center gap-1 rounded bg-red-600/15 px-2 py-0.5 text-xs font-semibold uppercase text-red-600">
+              <Skull className="h-3 w-3" />
+              Deceased
             </span>
           )}
         </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState, type ComponentProps } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,6 +31,67 @@ interface FactionTrackerProps {
   readonly?: boolean
 }
 
+// Buffers edits locally and commits on a 350ms debounce (and immediately on blur),
+// so we don't write to the store / broadcast on every keystroke.
+function useDebouncedField(value: string, onCommit: (v: string) => void, delay = 350) {
+  const [local, setLocal] = useState(value)
+  const dirty = useRef(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const localRef = useRef(value)
+  const commitRef = useRef(onCommit)
+  localRef.current = local
+  commitRef.current = onCommit
+
+  // Adopt external changes (e.g. a remote edit) only when we have no pending local edit.
+  useEffect(() => {
+    if (!dirty.current) setLocal(value)
+  }, [value])
+
+  // Flush any pending edit if the field unmounts (e.g. the panel collapses).
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current)
+    if (dirty.current) commitRef.current(localRef.current)
+  }, [])
+
+  function onChange(v: string) {
+    setLocal(v)
+    dirty.current = true
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(() => {
+      dirty.current = false
+      commitRef.current(localRef.current)
+    }, delay)
+  }
+
+  function onBlur() {
+    if (timer.current) clearTimeout(timer.current)
+    if (dirty.current) {
+      dirty.current = false
+      commitRef.current(localRef.current)
+    }
+  }
+
+  return { local, onChange, onBlur }
+}
+
+function DebouncedInput({
+  value,
+  onCommit,
+  ...props
+}: { value: string; onCommit: (v: string) => void } & Omit<ComponentProps<typeof Input>, 'value' | 'onChange' | 'onBlur'>) {
+  const { local, onChange, onBlur } = useDebouncedField(value, onCommit)
+  return <Input {...props} value={local} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} />
+}
+
+function DebouncedTextarea({
+  value,
+  onCommit,
+  ...props
+}: { value: string; onCommit: (v: string) => void } & Omit<ComponentProps<'textarea'>, 'value' | 'onChange' | 'onBlur'>) {
+  const { local, onChange, onBlur } = useDebouncedField(value, onCommit)
+  return <textarea {...props} value={local} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} />
+}
+
 export function FactionTracker({ factions, onUpdate, onAdd, onDelete, readonly }: FactionTrackerProps) {
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [addMode, setAddMode] = useState<'canonical' | 'custom'>('canonical')
@@ -38,8 +99,16 @@ export function FactionTracker({ factions, onUpdate, onAdd, onDelete, readonly }
   const [customTier, setCustomTier] = useState('1')
   const [customHold, setCustomHold] = useState<Hold>('weak')
   const [customCategory, setCustomCategory] = useState('')
+  const [categoryMode, setCategoryMode] = useState<'existing' | 'new'>('existing')
   const [customDescription, setCustomDescription] = useState('')
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set())
+
+  const knownCategories = Array.from(
+    new Set<string>([
+      ...CANONICAL_FACTIONS.map((f) => f.category),
+      ...factions.map((f) => f.category).filter((c): c is string => !!c),
+    ]),
+  ).sort()
 
   const grouped = factions.reduce<Record<string, Faction[]>>((acc, f) => {
     const cat = f.category ?? 'Other'
@@ -91,6 +160,7 @@ export function FactionTracker({ factions, onUpdate, onAdd, onDelete, readonly }
     setCustomTier('1')
     setCustomHold('weak')
     setCustomCategory('')
+    setCategoryMode('existing')
     setCustomDescription('')
     setAddDialogOpen(false)
   }
@@ -106,6 +176,11 @@ export function FactionTracker({ factions, onUpdate, onAdd, onDelete, readonly }
 
   return (
     <div className="space-y-4">
+      <datalist id="faction-categories">
+        {knownCategories.map((c) => (
+          <option key={c} value={c} />
+        ))}
+      </datalist>
       {Object.entries(grouped).map(([category, categoryFactions]) => (
         <Card key={category}>
           <CardHeader className="pb-2">
@@ -203,13 +278,51 @@ export function FactionTracker({ factions, onUpdate, onAdd, onDelete, readonly }
 
                   {expandedNotes.has(faction.id) && (
                     <div className="border-t px-2 py-2 space-y-2">
+                      {!readonly && (
+                        <>
+                          <div>
+                            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                              Name
+                            </Label>
+                            <DebouncedInput
+                              value={faction.name}
+                              onCommit={(v) => onUpdate(faction.id, { name: v })}
+                              placeholder="Faction name..."
+                              className="mt-1 h-8 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                              Category
+                            </Label>
+                            <DebouncedInput
+                              value={faction.category ?? ''}
+                              onCommit={(v) => onUpdate(faction.id, { category: v || null })}
+                              placeholder="e.g. Underworld, Institutions..."
+                              list="faction-categories"
+                              className="mt-1 h-8 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                              Description
+                            </Label>
+                            <DebouncedInput
+                              value={faction.description ?? ''}
+                              onCommit={(v) => onUpdate(faction.id, { description: v || null })}
+                              placeholder="Brief description..."
+                              className="mt-1 h-8 text-xs"
+                            />
+                          </div>
+                        </>
+                      )}
                       <div>
                         <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
                           Known Info (visible to players)
                         </Label>
-                        <textarea
+                        <DebouncedTextarea
                           value={faction.player_notes ?? ''}
-                          onChange={(e) => onUpdate(faction.id, { player_notes: e.target.value || null })}
+                          onCommit={(v) => onUpdate(faction.id, { player_notes: v || null })}
                           readOnly={readonly}
                           placeholder="Leader, HQ, known operations..."
                           className="mt-1 w-full min-h-[40px] rounded-md border border-input bg-transparent px-3 py-2 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
@@ -220,9 +333,9 @@ export function FactionTracker({ factions, onUpdate, onAdd, onDelete, readonly }
                           <Label className="text-[10px] uppercase tracking-wider text-amber-600">
                             GM Notes (hidden from players)
                           </Label>
-                          <textarea
+                          <DebouncedTextarea
                             value={faction.notes ?? ''}
-                            onChange={(e) => onUpdate(faction.id, { notes: e.target.value || null })}
+                            onCommit={(v) => onUpdate(faction.id, { notes: v || null })}
                             placeholder="Secret plans, hidden agendas..."
                             className="mt-1 w-full min-h-[40px] rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
                           />
@@ -355,12 +468,49 @@ export function FactionTracker({ factions, onUpdate, onAdd, onDelete, readonly }
                   </div>
                   <div>
                     <Label>Category</Label>
-                    <Input
-                      value={customCategory}
-                      onChange={(e) => setCustomCategory(e.target.value)}
-                      placeholder="e.g. Underworld, Institutions..."
-                      className="mt-1"
-                    />
+                    {categoryMode === 'existing' ? (
+                      <Select
+                        value={customCategory}
+                        onValueChange={(v) => {
+                          if (!v) return
+                          if (v === '__new__') {
+                            setCategoryMode('new')
+                            setCustomCategory('')
+                          } else {
+                            setCustomCategory(v)
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {knownCategories.map((c) => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                          ))}
+                          <SelectItem value="__new__">+ New category…</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="mt-1 flex gap-2">
+                        <Input
+                          autoFocus
+                          value={customCategory}
+                          onChange={(e) => setCustomCategory(e.target.value)}
+                          placeholder="New category name..."
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setCategoryMode('existing')
+                            setCustomCategory('')
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <Label>Description</Label>

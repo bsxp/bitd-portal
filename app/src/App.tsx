@@ -32,26 +32,43 @@ import { SessionProvider, useSession } from '@/lib/session'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn, displayName } from '@/lib/utils'
 import { Shield, Users, Clock, Swords, Eye, EyeOff, Plus, Home, Map, Target, Loader2, LogOut, TrendingUp, Flame, Coins, Wrench, RotateCcw, BookOpen } from 'lucide-react'
-import type { Clock as ClockType, ClockScope } from '@/lib/types'
+import type { Clock as ClockType, ClockScope, Character } from '@/lib/types'
 import type { OnlinePlayer } from '@/lib/store'
 
-function OnlinePlayers({ players }: { players: OnlinePlayer[] }) {
+function OnlinePlayers({ players, characters }: { players: OnlinePlayer[]; characters: Character[] }) {
   // de-dupe by seat (a seat may briefly appear twice during reconnects)
   const seen = new Set<string>()
   const unique = players.filter((p) => (seen.has(p.seat) ? false : (seen.add(p.seat), true)))
   if (unique.length === 0) return null
   return (
     <div className="hidden items-center gap-1.5 sm:flex">
-      {unique.slice(0, 6).map((p) => (
-        <div
-          key={p.seat}
-          title={`${p.name} (online)`}
-          className="flex h-6 items-center gap-1 rounded-full border border-green-500/40 bg-green-500/10 px-2 text-[11px] font-medium text-green-700 dark:text-green-400"
-        >
-          <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-          {p.name === 'Game Master' ? 'GM' : p.name.split(' ')[0]}
-        </div>
-      ))}
+      {unique.slice(0, 6).map((p) => {
+        if (p.name === 'Game Master') {
+          return (
+            <div
+              key={p.seat}
+              title="Game Master (online)"
+              className="flex h-6 items-center gap-1 rounded-full border border-green-500/40 bg-green-500/10 px-2 text-[11px] font-medium text-green-700 dark:text-green-400"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+              GM
+            </div>
+          )
+        }
+        // seat is the character id — prefer the character's nickname (alias)
+        const char = characters.find((c) => c.id === p.seat)
+        const label = char?.alias || p.name.split(' ')[0]
+        return (
+          <div
+            key={p.seat}
+            title={`${p.name} (online)`}
+            className="flex h-6 items-center gap-1 rounded-full border border-green-500/40 bg-green-500/10 px-2 text-[11px] font-medium text-green-700 dark:text-green-400"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+            {label}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -151,7 +168,7 @@ function AppContent() {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <OnlinePlayers players={onlinePlayers} />
+            <OnlinePlayers players={onlinePlayers} characters={characters} />
             {isGM && (
               <div className="flex items-center gap-1.5">
                 <Button

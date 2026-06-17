@@ -234,10 +234,22 @@ export interface Media {
 // A free-form shared note (the crew "Codex"): people, places, rumors, anything
 // the table wants to remember. Anyone may add or edit. Each note is its own
 // realtime-synced row so concurrent additions don't clobber each other.
+export type CodexTag = 'people' | 'places' | 'items' | 'factions' | 'lore' | 'other'
+
+export const CODEX_TAGS: { value: CodexTag; label: string }[] = [
+  { value: 'people', label: 'People' },
+  { value: 'places', label: 'Places' },
+  { value: 'items', label: 'Items' },
+  { value: 'factions', label: 'Factions' },
+  { value: 'lore', label: 'Lore / History' },
+  { value: 'other', label: 'Other' },
+]
+
 export interface CodexEntry {
   id: string
   campaign_id: string
   title: string
   body: string
+  tag: CodexTag | null
   created_at: string
 }

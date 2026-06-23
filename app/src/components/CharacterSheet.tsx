@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
@@ -410,10 +409,10 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
                           return (
                             <div key={field.key} className="space-y-1">
                               <Label className="text-xs text-muted-foreground">{field.label}</Label>
-                              <Input
+                              <DebouncedText
                                 value={details[dkey] ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value
+                                onCommit={(v) => {
+                                  const value = v ?? ''
                                   const nextDetails = { ...details }
                                   if (value) nextDetails[dkey] = value
                                   else delete nextDetails[dkey]
@@ -426,7 +425,7 @@ export function CharacterSheet({ character, onUpdate, readonly, isGM }: Characte
                                 }}
                                 list={field.options ? listId : undefined}
                                 placeholder={field.placeholder}
-                                readOnly={readonly}
+                                readonly={readonly}
                                 className="h-8 text-sm"
                               />
                               {field.options && (

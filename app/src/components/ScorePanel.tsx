@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DebouncedText } from '@/components/DebouncedText'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { ClockDisplay } from '@/components/trackers/ClockDisplay'
@@ -146,22 +147,22 @@ export function ScorePanel({ isGM }: { isGM: boolean }) {
           <CardContent className="space-y-3 pt-4">
             <div>
               <Label className="text-xs text-muted-foreground">Score Name</Label>
-              <Input
+              <DebouncedText
                 value={score.title}
-                onChange={(e) => updateScore({ title: e.target.value })}
+                onCommit={(v) => updateScore({ title: v ?? '' })}
                 placeholder="The Brightstone Job..."
                 className="mt-1"
-                readOnly={!isGM}
+                readonly={!isGM}
               />
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Target</Label>
-              <Input
+              <DebouncedText
                 value={score.target ?? ''}
-                onChange={(e) => updateScore({ target: e.target.value || null })}
+                onCommit={(v) => updateScore({ target: v })}
                 placeholder="Who or what is the objective?"
                 className="mt-1"
-                readOnly={!isGM}
+                readonly={!isGM}
               />
             </div>
           </CardContent>
@@ -193,12 +194,12 @@ export function ScorePanel({ isGM }: { isGM: boolean }) {
             {selectedPlan && (
               <div>
                 <Label className="text-xs text-muted-foreground">{selectedPlan.detail}</Label>
-                <Input
+                <DebouncedText
                   value={score.plan_detail ?? ''}
-                  onChange={(e) => updateScore({ plan_detail: e.target.value || null })}
+                  onCommit={(v) => updateScore({ plan_detail: v })}
                   placeholder={`Provide the detail: ${selectedPlan.detail.toLowerCase()}...`}
                   className="mt-1"
-                  readOnly={!isGM}
+                  readonly={!isGM}
                 />
               </div>
             )}
@@ -415,9 +416,10 @@ export function ScorePanel({ isGM }: { isGM: boolean }) {
       <Card>
         <CardContent className="pt-4">
           <Label className="text-xs text-muted-foreground">Score Notes</Label>
-          <textarea
+          <DebouncedText
+            multiline
             value={score.notes ?? ''}
-            onChange={(e) => updateScore({ notes: e.target.value || null })}
+            onCommit={(v) => updateScore({ notes: v })}
             placeholder="What's happening, complications, what the crew has learned..."
             className="mt-1 w-full min-h-[70px] resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
@@ -488,9 +490,10 @@ export function ScorePanel({ isGM }: { isGM: boolean }) {
               )}
               <div>
                 <Label className="text-xs text-muted-foreground">What happened (recap for the log)</Label>
-                <textarea
+                <DebouncedText
+                  multiline
                   value={score.outcome_notes ?? ''}
-                  onChange={(e) => updateScore({ outcome_notes: e.target.value || null })}
+                  onCommit={(v) => updateScore({ outcome_notes: v })}
                   placeholder="The DM's summary of how the job went..."
                   className="mt-1 w-full min-h-[60px] resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />

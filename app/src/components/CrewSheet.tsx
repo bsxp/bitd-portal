@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { DebouncedText } from '@/components/DebouncedText'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { XPTracker } from '@/components/trackers/XPTracker'
@@ -156,28 +156,28 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
               <Label className="text-xs text-muted-foreground">Reputation</Label>
-              <Input
+              <DebouncedText
                 value={crew.reputation ?? ''}
-                onChange={(e) => onUpdate({ reputation: e.target.value })}
-                readOnly={readonly}
+                onCommit={(v) => onUpdate({ reputation: v ?? '' })}
+                readonly={readonly}
                 className="mt-1 h-8"
               />
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Lair</Label>
-              <Input
+              <DebouncedText
                 value={crew.lair_location ?? ''}
-                onChange={(e) => onUpdate({ lair_location: e.target.value })}
-                readOnly={readonly}
+                onCommit={(v) => onUpdate({ lair_location: v ?? '' })}
+                readonly={readonly}
                 className="mt-1 h-8"
               />
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Hunting Grounds</Label>
-              <Input
+              <DebouncedText
                 value={crew.hunting_grounds_location ?? ''}
-                onChange={(e) => onUpdate({ hunting_grounds_location: e.target.value })}
-                readOnly={readonly}
+                onCommit={(v) => onUpdate({ hunting_grounds_location: v ?? '' })}
+                readonly={readonly}
                 className="mt-1 h-8"
               />
             </div>
@@ -453,10 +453,11 @@ export function CrewSheet({ crew, onUpdate, readonly }: CrewSheetProps) {
           <CardTitle className="text-lg">Notes</CardTitle>
         </CardHeader>
         <CardContent>
-          <textarea
+          <DebouncedText
+            multiline
             value={crew.notes ?? ''}
-            onChange={(e) => onUpdate({ notes: e.target.value || null })}
-            readOnly={readonly}
+            onCommit={(v) => onUpdate({ notes: v })}
+            readonly={readonly}
             placeholder="Crew notes, plans, contacts..."
             className="w-full min-h-[80px] rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
           />

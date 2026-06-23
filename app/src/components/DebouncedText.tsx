@@ -13,7 +13,8 @@ export function DebouncedText({
   placeholder,
   multiline,
   className,
-  delay = 300,
+  list,
+  delay = 250,
 }: {
   value: string
   onCommit: (v: string | null) => void
@@ -21,6 +22,7 @@ export function DebouncedText({
   placeholder?: string
   multiline?: boolean
   className?: string
+  list?: string
   delay?: number
 }) {
   const [draft, setDraft] = useState(value)
@@ -82,6 +84,7 @@ export function DebouncedText({
       readOnly={readonly}
       placeholder={placeholder}
       className={className}
+      list={list}
     />
   )
 }
